@@ -16,9 +16,11 @@ except Exception as e:
     Q = np.zeros((n_states, n_actions))
 
 
-alpha = 0.1
-gamma = 0.99
-epsilon = 1.0
+alpha = 0.1 # Taux d'apprentissage
+gamma = 0.99 # Facteur récompense
+epsilon = 1.0 # Taux d'exploration
+
+
 epsilon_min = 0.01
 epsilon_decay = 0.9995
 
