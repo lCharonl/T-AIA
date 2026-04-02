@@ -1,7 +1,22 @@
+import json
 import gymnasium as gym
 import numpy as np
 
+with open("config.json") as f:
+    cfg_file = json.load(f)
+
+cfg = cfg_file["configs"][cfg_file["active"]]
+print(f"Config chargée : {cfg_file['active']}")
+
+alpha         = cfg["alpha"]
+gamma         = cfg["gamma"]
+epsilon       = cfg["epsilon"]
+epsilon_min   = cfg["epsilon_min"]
+epsilon_decay = cfg["epsilon_decay"]
+n_episodes    = cfg["n_episodes"]
+
 env = gym.make("Taxi-v3")
+#env = gym.make("Taxi-v3", render_mode="human")
 
 n_actions = env.action_space.n
 n_states = env.observation_space.n
@@ -16,21 +31,12 @@ except Exception as e:
     Q = np.zeros((n_states, n_actions))
 
 
-alpha = 0.1 # Taux d'apprentissage
-gamma = 0.99 # Facteur récompense
-epsilon = 1.0 # Taux d'exploration
-
-
-epsilon_min = 0.01
-epsilon_decay = 0.9995
 
 def choose_action(state):
     if np.random.rand() < epsilon:
         return env.action_space.sample()
     else:
         return np.argmax(Q[state])
-
-n_episodes = 50000
 
 rewards_per_episode = []
 steps_per_episode = []

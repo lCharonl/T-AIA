@@ -1,0 +1,10 @@
+COmbionaison de chaque paramètres
+
+Plusieurs algo + métriques claires
+
+Modes time limited + tuning
+
+Comparaison avec brute force
+
+Rapport,  environnement, comment gérer le projet, les résultats, les paramètres
+

@@ -1,0 +1,44 @@
+{
+    "configs": {
+        "baseline": {
+            "alpha": 0.1,
+            "gamma": 0.99,
+            "epsilon": 1.0,
+            "epsilon_min": 0.01,
+            "epsilon_decay": 0.9995,
+            "n_episodes": 15000
+        },
+        "alpha_faible": {
+            "alpha": 0.01,
+            "gamma": 0.99,
+            "epsilon": 1.0,
+            "epsilon_min": 0.01,
+            "epsilon_decay": 0.9995,
+            "n_episodes": 15000
+        },
+        "alpha_fort": {
+            "alpha": 0.5,
+            "gamma": 0.99,
+            "epsilon": 1.0,
+            "epsilon_min": 0.01,
+            "epsilon_decay": 0.9995,
+            "n_episodes": 15000
+        },
+        "decay_rapide": {
+            "alpha": 0.1,
+            "gamma": 0.99,
+            "epsilon": 1.0,
+            "epsilon_min": 0.01,
+            "epsilon_decay": 0.999,
+            "n_episodes": 15000
+        },
+        "gamma_faible": {
+            "alpha": 0.1,
+            "gamma": 0.5,
+            "epsilon": 1.0,
+            "epsilon_min": 0.01,
+            "epsilon_decay": 0.9995,
+            "n_episodes": 15000
+        }
+    }
+}
