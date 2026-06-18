@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Taxi Driver — Maquette plateforme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="proto.css" />
+</head>
+<body>
+    <!-- ============ VIEWPORT (full-screen app) ============ -->
+    <div class="viewport">
+      <!-- RAIL -->
+      <aside class="rail">
+        <div class="brand">
+          <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
+          <div>
+            <div class="brand-title">TAXI&nbsp;DRIVER<span class="cursor">_</span></div>
+            <div class="brand-sub">&lt; anytime, anywhere /&gt;</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-link active" data-go="land">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+            <span>Accueil</span>
+          </button>
+          <div class="nav-sec">Plateforme</div>
+          <button class="nav-link" data-go="env">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+            <span>Environnement</span>
+          </button>
+          <button class="nav-link" data-go="train">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="20" cy="14" r="2"/></svg>
+            <span>Entraînement</span>
+          </button>
+          <button class="nav-link" data-go="bench">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7"/><rect x="11" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+            <span>Benchmark</span>
+          </button>
+          <!-- Reward shaping hidden during presentation prep — un-comment to re-enable.
+          <button class="nav-link" data-go="reward">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 1-3.5 3.5L17 18l-5-2.5L7 18l1.5-5.5L5 9l5-1z"/></svg>
+            <span>Reward shaping</span>
+          </button>
+          -->
+          <div class="nav-sec">Suivi</div>
+          <button class="nav-link" data-go="history">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            <span>Historique</span>
+          </button>
+        </nav>
+        <div class="rail-foot">
+          <div class="kpi-mini"><span class="kpi-mini-label">Modèle actif</span><span class="kpi-mini-val" id="rail-model">Q-Learning</span></div>
+          <div class="kpi-mini"><span class="kpi-mini-label">Pas / épisode</span><span class="kpi-mini-val">13.1</span></div>
+          <p class="rail-note">Projet IA · Gymnasium Taxi-v3 · entraînements exécutés sur le serveur Python.</p>
+          <span class="api-badge" id="api-badge">API…</span>
+        </div>
+      </aside>
+
+      <!-- CONTENT -->
+      <main class="content">
+
+        <!-- ============ LANDING ============ -->
+        <section class="screen active land" id="screen-land">
+          <div class="hero">
+            <div class="hero-grid-bg"></div>
+            <div class="hero-inner">
+              <span class="eyebrow"><span style="width:7px;height:7px;border-radius:50%;background:var(--q);display:inline-block"></span>Apprentissage par renforcement · sans modèle</span>
+              <h1>Un taxi qui apprend à conduire, <em>par essais et récompenses.</em></h1>
+              <p>Quatre approches comparées sur l'environnement Gymnasium Taxi-v3 — de la force brute aléatoire jusqu'à un agent optimal qui résout chaque course en 13 pas. Entraînez, observez, comparez, le tout en direct dans le navigateur.</p>
+              <div class="hero-cta">
+                <button class="btn primary" data-go="env">▶ Lancer la simulation</button>
+                <button class="btn ghost" data-go="bench">Voir le benchmark</button>
+              </div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><div class="n">500</div><div class="l">états<br />25 × 5 × 4</div></div>
+            <div class="hstat"><div class="n">×140</div><div class="l">plus rapide que<br />la force brute</div></div>
+            <div class="hstat"><div class="n">13<small> pas</small></div><div class="l">par course<br />politique optimale</div></div>
+            <div class="hstat"><div class="n">100<small>%</small></div><div class="l">de réussite<br />sur 100 épisodes</div></div>
+          </div>
+          <div class="land-sec">
+            <h2>Quatre algorithmes, du hasard à l'optimum</h2>
+            <p class="sub">Cliquez une approche pour explorer la plateforme.</p>
+            <div class="algo-cards">
+              <div class="acard" style="--accent:#7F8B9A" data-go="bench">
+                <div class="an">01</div><h3>Force brute</h3><div class="fam">sans apprentissage</div>
+                <p>Agit au hasard, sans mémoire. Le point de référence imposé.</p>
+                <div class="metric"><b>1835</b><span>pas / course</span></div>
+              </div>
+              <div class="acard" style="--accent:#2FD4BF" data-go="env">
+                <div class="an">02</div><h3>Q-Learning</h3><div class="fam">TD · off-policy</div>
+                <p>Apprend une table Q en visant la meilleure action future.</p>
+                <div class="metric"><b>13.1</b><span>pas / course</span></div>
+              </div>
+              <div class="acard" style="--accent:#A78BFA" data-go="bench">
+                <div class="an">03</div><h3>SARSA</h3><div class="fam">TD · on-policy</div>
+                <p>Apprend sur l'action réellement suivie. La variante prudente.</p>
+                <div class="metric"><b>13.2</b><span>pas / course</span></div>
+              </div>
+              <div class="acard" style="--accent:#5B9DF0" data-go="bench">
+                <div class="an">04</div><h3>Deep Q-Learning</h3><div class="fam">approx. · réseau</div>
+                <p>Un réseau de neurones remplace la table. Pour les grands espaces.</p>
+                <div class="metric"><b>13.4</b><span>pas / course</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="land-foot">
+            <span>TAXI DRIVER — projet IA · Gymnasium Taxi-v3</span>
+            <span>Données réelles, non simulées</span>
+          </div>
+        </section>
+
+        <!-- ============ ENVIRONNEMENT ============ -->
+        <section class="screen" id="screen-env">
+          <div class="wrap">
+            <div class="sec-head">
+              <span class="sec-tag">Environnement · lecture d'une politique</span>
+              <h2 class="sec-title">Regarder un agent déjà entraîné conduire</h2>
+              <p class="sec-lede">Choisissez une politique (preset optimisé ou un run sauvegardé depuis l'Historique). L'agent récupère le passager et le conduit à destination — chaque pas affiche l'action, la récompense et le cumul. Aucun entraînement n'a lieu ici, c'est une démo instantanée.</p>
+            </div>
+            <div class="two">
+              <div class="panel grid-panel">
+                <div class="panel-head">
+                  <span class="panel-title">Épisode en direct</span>
+                  <span class="badge" id="env-status">prêt</span>
+                </div>
+                <div class="board-wrap">
+                  <div class="board-render" id="envBoard">
+                    <img id="envFrame" alt="Taxi-v3 — rendu Gymnasium" />
+                    <div class="board-empty" id="envEmpty">Choisis une politique puis « Lancer ».</div>
+                  </div>
+                  <div class="legend">
+                    <span class="lg"><i class="dot" style="background:#F7C612"></i>Taxi</span>
+                    <span class="lg"><i class="dot" style="background:#54D08A">G</i></span>
+                    <span class="lg"><i class="dot" style="background:#5B9DF0">B</i></span>
+                    <span class="lg"><i class="dot" style="background:#F26D6D">R</i></span>
+                    <span class="lg"><i class="dot" style="background:#F7C612">Y</i></span>
+                    <span class="lg" style="color:var(--txt-3)">Rendu officiel Gymnasium · render_mode=rgb_array</span>
+                  </div>
+                </div>
+                <div class="player">
+                  <div class="env-source-row">
+                    <div class="env-source-label">Preset optimisé</div>
+                    <div class="seg" id="env-policy">
+                      <button class="seg-btn active" data-algo="Q-Learning">Q-Learning</button>
+                      <button class="seg-btn" data-algo="SARSA">SARSA</button>
+                      <button class="seg-btn" data-algo="Deep Q-Learning">Deep Q-Learning</button>
+                      <button class="seg-btn" data-algo="Brute Force">Force brute</button>
+                    </div>
+                  </div>
+                  <div class="env-source-row">
+                    <div class="env-source-label">Ou un run sauvegardé</div>
+                    <select id="env-run" class="env-run-select">
+                      <option value="">— preset sélectionné ci-dessus —</option>
+                    </select>
+                  </div>
+                  <div class="player-ctrls">
+                    <button class="btn primary" id="env-play">▶ Lancer</button>
+                    <button class="btn ghost" id="env-step">Pas à pas</button>
+                    <button class="btn ghost" id="env-new">Nouvel épisode</button>
+                    <label class="speed">Vitesse <input type="range" id="env-speed" min="1" max="10" value="6" /></label>
+                  </div>
+                </div>
+              </div>
+              <div class="side">
+                <div class="readout">
+                  <div class="ro span"><span class="ro-l">Action en cours</span><span class="ro-v" id="ro-action">—</span></div>
+                  <div class="ro"><span class="ro-l">Pas</span><span class="ro-v" id="ro-step">0</span></div>
+                  <div class="ro"><span class="ro-l">Récompense cumulée</span><span class="ro-v q" id="ro-reward">0</span></div>
+                  <div class="ro"><span class="ro-l">Passager</span><span class="ro-v" id="ro-pass" style="font-size:14px">en attente</span></div>
+                  <div class="ro"><span class="ro-l">Pénalités</span><span class="ro-v" id="ro-pen">0</span></div>
+                </div>
+                <div class="panel tight log-panel">
+                  <div class="panel-head"><span class="panel-title sm">Journal des actions</span></div>
+                  <div class="log" id="env-log"></div>
+                </div>
+                <p class="micro">Astuce&nbsp;: comparez la <em>Force brute</em> (aléatoire, qui erre souvent ≥ 100 pas avant de livrer) aux trois algos appris <em>Q-Learning</em>, <em>SARSA</em> et <em>Deep Q-Learning</em> (qui résolvent en ~13 pas) — la différence de trajectoire est frappante.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ENTRAÎNEMENT ============ -->
+        <section class="screen" id="screen-train">
+          <div class="wrap">
+            <div class="sec-head">
+              <span class="sec-tag">Entraînement · mode réglages</span>
+              <h2 class="sec-title">Régler les hyperparamètres, observer la convergence</h2>
+              <p class="sec-lede">Ajustez α, γ et la politique d'exploration ε, choisissez le nombre d'épisodes, puis entraînez. Les courbes se construisent à partir de simulations réelles.</p>
+            </div>
+            <div class="train">
+              <div class="panel controls">
+                <div class="panel-title sm">Hyperparamètres</div>
+                <div class="ctrl">
+                  <div class="ctrl-top"><label>Algorithme</label></div>
+                  <div class="seg algo" id="train-algo">
+                    <button class="seg-btn active" data-algo="Q-Learning">Q-Learning</button>
+                    <button class="seg-btn" data-algo="SARSA">SARSA</button>
+                    <button class="seg-btn" data-algo="Deep Q-Learning">Deep Q-Learning</button>
+                  </div>
+                </div>
+                <div class="ctrl"><div class="ctrl-top"><label>Taux d'apprentissage α</label><span class="ctrl-val" id="v-alpha">0.10</span></div><input type="range" id="s-alpha" min="0.01" max="1" step="0.01" value="0.10" /></div>
+                <div class="ctrl"><div class="ctrl-top"><label>Actualisation γ</label><span class="ctrl-val" id="v-gamma">0.950</span></div><input type="range" id="s-gamma" min="0.5" max="0.999" step="0.001" value="0.95" /></div>
+                <div class="ctrl"><div class="ctrl-top"><label>ε initial</label><span class="ctrl-val" id="v-eps0">1.00</span></div><input type="range" id="s-eps0" min="0.1" max="1" step="0.01" value="1.00" /></div>
+                <div class="ctrl"><div class="ctrl-top"><label>Décroissance de ε</label><span class="ctrl-val" id="v-epsd">0.9995</span></div><input type="range" id="s-epsd" min="0.99" max="0.99995" step="0.00005" value="0.9995" /></div>
+                <div class="ctrl"><div class="ctrl-top"><label>ε minimal</label><span class="ctrl-val" id="v-epsm">0.02</span></div><input type="range" id="s-epsm" min="0" max="0.3" step="0.01" value="0.02" /></div>
+                <div class="ctrl"><div class="ctrl-top"><label>Épisodes</label><span class="ctrl-val" id="v-eps">3000</span></div><input type="range" id="s-episodes" min="200" max="12000" step="100" value="3000" /></div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                  <button class="btn primary" id="train-run">Entraîner</button>
+                  <button class="btn ghost" id="train-preset">Charger preset optimisé</button>
+                </div>
+                <div class="train-progress"><span id="train-prog-fill"></span></div>
+                <p class="micro" id="train-msg">Le modèle par défaut est déjà entraîné. Modifiez les paramètres et relancez pour comparer.</p>
+              </div>
+              <div class="train-charts">
+                <div class="panel chart-panel">
+                  <div class="panel-head"><span class="panel-title sm">Récompense par épisode (lissée)</span><span class="legend-inline" id="train-chart-legend"><i id="train-chart-legend-swatch" style="background:#2FD4BF"></i><span id="train-chart-legend-label">Q-Learning</span></span></div>
+                  <svg id="rewardChart" class="chart-svg" style="width:100%;height:220px"></svg>
+                </div>
+                <div class="train-row">
+                  <div class="panel chart-panel">
+                    <div class="panel-head"><span class="panel-title sm">Pas par épisode</span></div>
+                    <svg id="stepsChart" class="chart-svg" style="width:100%;height:200px"></svg>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title sm">Résultat (glouton)</div>
+                    <div class="res-grid">
+                      <div class="res"><span class="res-l">Pas moyens</span><span class="res-v" id="res-steps">—</span></div>
+                      <div class="res"><span class="res-l">Récompense</span><span class="res-v" id="res-reward">—</span></div>
+                      <div class="res"><span class="res-l">Réussite</span><span class="res-v" id="res-success">—</span></div>
+                      <div class="res"><span class="res-l">Temps total</span><span class="res-v" id="res-time">—</span></div>
+                    </div>
+                    <p class="micro">Évalué sur 200 épisodes sans exploration à la fin du training.</p>
+                  </div>
+                </div>
+                <div class="panel train-mini-grid">
+                  <div class="mini-head">
+                    <span class="panel-title sm">Aperçu live du taxi</span>
+                    <span id="mini-info">en attente — un épisode glouton tous les ~N entraînements</span>
+                  </div>
+                  <div class="mini-frame">
+                    <img id="miniFrame" alt="aperçu live" />
+                    <span class="mini-empty" id="miniEmpty">Lancez un entraînement pour voir le taxi apprendre.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ BENCHMARK ============ -->
+        <section class="screen" id="screen-bench">
+          <div class="wrap">
+            <div class="sec-head">
+              <span class="sec-tag">Benchmark</span>
+              <h2 class="sec-title">Force brute vs. apprentissage</h2>
+              <p class="sec-lede">Tous les chiffres proviennent d'exécutions réelles côté serveur Python (Gymnasium Taxi-v3). Chaque algorithme est d'abord <em>entraîné à sa juste mesure</em> (Q-Learning 2000 ép., SARSA 8000 ép., DQN 4000 ép. — sauf Brute Force et Q-Learning non optimisé), puis <em>évalué sur 100 épisodes identiques</em> avec une politique gloutonne (ε = 0).</p>
+            </div>
+            <div class="bench-cards">
+              <div class="bcard" style="--accent:#7F8B9A"><div class="bcard-name"><i></i>Force brute</div><div class="bcard-big" style="color:#7F8B9A">1835</div><div class="bcard-unit">pas / course</div><div class="bcard-sub">66 % résolus · −7245 récompense</div></div>
+              <div class="bcard" style="--accent:#2FD4BF"><div class="bcard-name"><i></i>Q-Learning</div><div class="bcard-big" style="color:#2FD4BF">13.1</div><div class="bcard-unit">pas / course</div><div class="bcard-sub">100 % · +7.9 récompense</div></div>
+              <div class="bcard" style="--accent:#A78BFA"><div class="bcard-name"><i></i>SARSA</div><div class="bcard-big" style="color:#A78BFA">13.2</div><div class="bcard-unit">pas / course</div><div class="bcard-sub">100 % · +7.8 récompense</div></div>
+              <div class="bcard" style="--accent:#5B9DF0"><div class="bcard-name"><i></i>Deep Q-Learning</div><div class="bcard-big" style="color:#5B9DF0">13.4</div><div class="bcard-unit">pas / course</div><div class="bcard-sub">99.8 % · via reward shaping</div></div>
+            </div>
+            <div class="bench-grid">
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Pas moyens pour résoudre (échelle log)</span></div>
+                <svg id="benchStepsChart" class="chart-svg" style="width:100%;height:250px"></svg>
+              </div>
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Récompense moyenne par épisode</span></div>
+                <svg id="benchRewardChart" class="chart-svg" style="width:100%;height:250px"></svg>
+              </div>
+            </div>
+            <div class="panel table-panel">
+              <div class="panel-head"><span class="panel-title sm">Tableau récapitulatif</span><button class="btn ghost xs">Relancer le benchmark</button></div>
+              <table class="bt">
+                <thead><tr><th>Algorithme</th><th>Pas moy.</th><th>Récompense</th><th>Pénalités</th><th>Réussite</th></tr></thead>
+                <tbody>
+                  <tr><td class="algo-cell"><i style="background:#7F8B9A"></i>Force brute (aléatoire)</td><td>1835</td><td>−7245</td><td>602</td><td>66 %</td></tr>
+                  <tr><td class="algo-cell"><i style="background:#F0883E"></i>Q-Learning non optimisé</td><td>126</td><td>−118</td><td>0</td><td>39 %</td></tr>
+                  <tr class="best"><td class="algo-cell"><i style="background:#2FD4BF"></i>Q-Learning optimisé</td><td class="hi">13.1</td><td class="hi">+7.9</td><td>0</td><td class="hi">100 %</td></tr>
+                  <tr><td class="algo-cell"><i style="background:#A78BFA"></i>SARSA optimisé</td><td>13.2</td><td>+7.8</td><td>0</td><td>100 %</td></tr>
+                  <tr><td class="algo-cell"><i style="background:#5B9DF0"></i>Deep Q-Learning</td><td>13.4</td><td>+7.6</td><td>0</td><td>99.8 %</td></tr>
+                </tbody>
+              </table>
+              <p class="micro" style="margin-top:12px">Le « Q-Learning non optimisé » utilise des paramètres volontairement médiocres pour matérialiser le point de départ du benchmark, avant optimisation. Le DQN n'atteint l'optimum qu'avec reward shaping et ~5800 épisodes.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ REWARD SHAPING ============ -->
+        <section class="screen" id="screen-reward">
+          <div class="wrap">
+            <div class="sec-head">
+              <span class="sec-tag">Stratégie d'optimisation</span>
+              <h2 class="sec-title">Façonner les récompenses pour accélérer l'apprentissage</h2>
+              <p class="sec-lede">On ajoute une récompense de <em>potentiel</em> (distance de Manhattan vers la cible) — une technique qui préserve la politique optimale (Ng et al., 1999) tout en guidant l'agent plus tôt.</p>
+            </div>
+            <div class="reward-grid">
+              <div class="panel">
+                <div class="panel-head"><span class="panel-title sm">Comparaison de convergence (pas / épisode)</span></div>
+                <svg id="shapeChart" class="chart-svg" style="width:100%;height:240px"></svg>
+                <div class="legend-inline two-l"><span><i style="background:#2FD4BF"></i>Barème standard</span><span><i style="background:#F7C612"></i>Avec reward shaping</span></div>
+              </div>
+              <div class="reward-side">
+                <div class="panel tight">
+                  <div class="ctrl"><div class="ctrl-top"><label>Intensité du shaping</label><span class="ctrl-val" id="v-shape">0.40</span></div><input type="range" id="s-shape" min="0" max="1" step="0.05" value="0.40" /></div>
+                  <button class="btn primary full" id="shape-run" style="margin-top:14px">Comparer les deux barèmes</button>
+                  <div class="res-grid two-c" style="margin-top:14px">
+                    <div class="res"><span class="res-l">Convergence standard</span><span class="res-v" id="shape-base">~1700 ép.</span></div>
+                    <div class="res"><span class="res-l">Convergence shaping</span><span class="res-v" id="shape-shaped">~1080 ép.</span></div>
+                  </div>
+                </div>
+                <p class="micro">« Convergence » = épisode où la moyenne glissante des pas passe durablement sous 20. Un coefficient trop fort peut distraire de l'objectif réel.</p>
+              </div>
+            </div>
+            <div class="panel insight">
+              <div class="panel-title sm">Synthèse pour le rapport</div>
+              <div class="insight-grid">
+                <div class="ins"><h4>γ est décisif</h4><p>Trop faible, le taxi ignore la prime finale (+20) et abandonne le passager. γ ≈ 0.97 fonctionne le mieux.</p></div>
+                <div class="ins"><h4>Le shaping accélère</h4><p>Il fait converger ~40 % plus tôt sans changer la politique optimale — indispensable pour faire apprendre le DQN.</p></div>
+                <div class="ins"><h4>Le bon outil</h4><p>Sur 500 états, la table tabulaire est exacte et efficace ; le DQN reste l'extension pour les grands espaces.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ HISTORIQUE ============ -->
+        <section class="screen" id="screen-history">
+          <div class="wrap">
+            <div class="sec-head">
+              <span class="sec-tag">Suivi · journal des runs</span>
+              <h2 class="sec-title">Historique des entraînements</h2>
+              <p class="sec-lede">Chaque entraînement lancé depuis l'écran <em>Entraînement</em> est archivé ici avec ses hyperparamètres, sa courbe de convergence et son résultat — pour comparer les réglages d'une exécution à l'autre.</p>
+            </div>
+            <div class="hist-head">
+              <div class="hist-summary">
+                <span class="hpill">Runs enregistrés · <b id="h-count">3</b></span>
+                <span class="hpill">Meilleur · <b id="h-best">13.1 pas</b></span>
+                <span class="hpill">Algorithme dominant · <b>Q-Learning</b></span>
+              </div>
+              <button class="btn ghost xs" id="h-clear">Vider l'historique</button>
+            </div>
+            <div class="hist-list" id="hist-list"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+<div id="toast-host" style="position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;"></div>
+<script src="api.js"></script>
+<script src="proto.js"></script>
+</body>
+</html>
