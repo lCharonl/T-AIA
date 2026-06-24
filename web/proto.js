@@ -850,6 +850,86 @@
   });
 
   /* ============================================================
+     6bis. ALGO PAGES — static illustrative charts
+     Pre-measured curves (figées d'après le PDF / runs réels),
+     rendues une fois au chargement via les mêmes helpers SVG.
+     ============================================================ */
+  function drawAlgoCharts() {
+    const N = 60;
+    // Convergence générique : plancher + amplitude·exp(-i/τ) + ondulation amortie.
+    const conv = (floor, span, tau, ripple) =>
+      Array.from({ length: N }, (_, i) =>
+        floor + span * Math.exp(-i / tau) + ripple * Math.sin(i / 3) * Math.exp(-i / 20));
+    const xT = (ep) => [
+      { i: 0, label: "0" },
+      { i: 19, label: Math.round(ep / 3) + "" },
+      { i: 39, label: Math.round((2 * ep) / 3) + "" },
+      { i: 59, label: ep + "" },
+    ];
+    const Y = { W: 620, H: 240, yMin: 0, yMax: 210, yTicks: [0, 50, 100, 150, 200] };
+
+    // ── Force brute : histogramme des pas-pour-résoudre (100 épisodes) ──
+    const bf = document.getElementById("algoBruteChart");
+    if (bf) {
+      const bars = [
+        { name: "0–200", v: 6 },
+        { name: "200–500", v: 15 },
+        { name: "500–1k", v: 24 },
+        { name: "1k–2k", v: 27 },
+        { name: "2k–3k", v: 16 },
+        { name: "3k+", v: 12 },
+      ].map((b) => ({ ...b, label: String(b.v), color: "#7F8B9A" }));
+      barChart(bf, { W: 620, H: 240, min: 0, max: 30, yTicks: [0, 10, 20, 30], bars });
+    }
+
+    // ── Q-Learning : convergence des pas + décroissance de ε (mise à l'échelle ×200) ──
+    const q = document.getElementById("algoQChart");
+    if (q) {
+      const steps = conv(13, 190, 7, 6);
+      const eps = Array.from({ length: N }, (_, i) => {
+        const ep = (i / (N - 1)) * 2000;
+        return Math.max(0.01, Math.pow(0.999, ep)) * 200;
+      });
+      lineChart(q, {
+        ...Y, xTicks: xT(2000),
+        series: [
+          { data: eps, color: "#F7C612", w: 2, dim: true },
+          { data: steps, color: "#2FD4BF", area: "#2FD4BF" },
+        ],
+      });
+    }
+
+    // ── SARSA vs Q-Learning : même optimum, SARSA converge un peu plus tard ──
+    const sa = document.getElementById("algoSarsaChart");
+    if (sa) {
+      const qc = conv(13, 190, 7, 5);
+      const sc = conv(13, 192, 8.2, 6);
+      lineChart(sa, {
+        ...Y, xTicks: xT(8000),
+        series: [
+          { data: qc, color: "#2FD4BF", w: 2, dim: true },
+          { data: sc, color: "#A78BFA" },
+        ],
+      });
+    }
+
+    // ── DQN vs table : le réseau atteint ~14.8 pas, plus lentement et plus bruité ──
+    const dq = document.getElementById("algoDqnChart");
+    if (dq) {
+      const tab = conv(13, 190, 6, 4);
+      const dqn = Array.from({ length: N }, (_, i) =>
+        14.8 + 188 * Math.exp(-i / 16) + 9 * Math.sin(i / 2.2) * Math.exp(-i / 24));
+      lineChart(dq, {
+        ...Y, xTicks: xT(4000),
+        series: [
+          { data: tab, color: "#2FD4BF", w: 2, dim: true },
+          { data: dqn, color: "#5B9DF0" },
+        ],
+      });
+    }
+  }
+
+  /* ============================================================
      7. INIT
      ============================================================ */
   async function loadOptimized() {
@@ -872,6 +952,7 @@
     if (st) lineChart(st, { W: 360, H: 200, yMin: 0, yMax: 210, yTicks: [0, 50, 100, 150, 200], xTicks: xTicks6k, series: [{ data: [], color: "#F7C612" }] });
     refreshHistory();
     resetEpisode();
+    drawAlgoCharts();
     go("land");
   });
 })();
