@@ -21,7 +21,7 @@ class SarsaAgent(BaseAgent):
 
     def __init__(
         self,
-        env_id: str = "Taxi-v3",
+        env_id: str = "Taxi-v4",
         seed: int = 0,
         alpha: float = 0.1,
         gamma: float = 0.99,

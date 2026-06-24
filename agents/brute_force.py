@@ -7,7 +7,7 @@ class BruteForceAgent(BaseAgent):
     """Naive baseline: picks a uniformly random action every step.
 
     No learning. By default we lift Gymnasium's TimeLimit (200) to 5000 so
-    that we measure the *real* cost of a random policy on Taxi-v3 — the
+    that we measure the *real* cost of a random policy on Taxi-v4 — the
     expected ~1800 mean steps and ~66 % eventual success rate. With the
     default TimeLimit, brute force would falsely appear to "fail in 198
     steps", which is just the truncation, not a real failure.
@@ -15,7 +15,7 @@ class BruteForceAgent(BaseAgent):
 
     name = "Brute Force"
 
-    def __init__(self, env_id: str = "Taxi-v3", seed: int = 0,
+    def __init__(self, env_id: str = "Taxi-v4", seed: int = 0,
                  max_episode_steps: int = 3000):
         super().__init__(env_id=env_id, seed=seed,
                          max_episode_steps=max_episode_steps)

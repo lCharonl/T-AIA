@@ -45,7 +45,7 @@ class _QNet(nn.Module):
 class DQNAgent(BaseAgent):
     """Deep Q-Network with experience replay and a frozen target network.
 
-    Surdimensionné pour Taxi-v3 (la table Q de 500×6 résout déjà le
+    Surdimensionné pour Taxi-v4 (la table Q de 500×6 résout déjà le
     problème) mais l'algorithme converge vers le même optimum (~13 steps,
     ~99 % succès). Présent dans le projet pour illustrer la mise à
     l'échelle vers des espaces d'état trop grands pour une table.
@@ -55,7 +55,7 @@ class DQNAgent(BaseAgent):
 
     def __init__(
         self,
-        env_id: str = "Taxi-v3",
+        env_id: str = "Taxi-v4",
         seed: int = 0,
         alpha: float = 5e-4,         # learning rate (Adam)
         gamma: float = 0.99,

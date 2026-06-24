@@ -42,12 +42,12 @@ class BaseAgent:
 
     name: str = "BaseAgent"
 
-    def __init__(self, env_id: str = "Taxi-v3", seed: int = 0,
+    def __init__(self, env_id: str = "Taxi-v4", seed: int = 0,
                  max_episode_steps: Optional[int] = None):
         self.env_id = env_id
         self.seed = seed
         # max_episode_steps overrides Gymnasium's default TimeLimit wrapper.
-        # None ⇒ keep the env default (200 for Taxi-v3). Pass e.g. 5000 for
+        # None ⇒ keep the env default (200 for Taxi-v4). Pass e.g. 5000 for
         # brute force to measure its real cost without truncation.
         self.max_episode_steps = max_episode_steps
         self.n_states = 500

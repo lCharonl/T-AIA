@@ -22,12 +22,12 @@ ACTION_NAMES = {
     5: "Dépose ✓",
 }
 
-# Default landmarks (row, col) for the 4 destinations on Taxi-v3.
+# Default landmarks (row, col) for the 4 destinations on Taxi-v4.
 LANDMARKS = {0: (0, 0), 1: (0, 4), 2: (4, 0), 3: (4, 3)}
 
 
 def decode_state(obs: int) -> dict[str, int]:
-    """Decode a Taxi-v3 observation int into its 4 components."""
+    """Decode a Taxi-v4 observation int into its 4 components."""
     dest_idx = obs % 4
     obs //= 4
     pass_loc = obs % 5
@@ -71,7 +71,7 @@ def _frame_to_b64(
 ) -> str:
     """Encode an (H,W,3) RGB numpy array as a base64 data URI.
 
-    Defaults to PNG full-res (~65 KB for Taxi-v3) for the Environnement
+    Defaults to PNG full-res (~65 KB for Taxi-v4) for the Environnement
     rollout where pixel-perfectness matters and the trace is short.
 
     For WebSocket-streamed training samples (~80 frames × 12 samples),
@@ -149,11 +149,11 @@ def rollout_episode(
     # Brute Force: lift the 200-step TimeLimit so a truly random agent
     # has a chance to deliver, otherwise we just stop on truncation.
     if algo == "Brute Force":
-        env = gym.make("Taxi-v3", render_mode="rgb_array", max_episode_steps=300)
+        env = gym.make("Taxi-v4", render_mode="rgb_array", max_episode_steps=300)
         if max_steps is None:
             max_steps = 300
     else:
-        env = gym.make("Taxi-v3", render_mode="rgb_array")
+        env = gym.make("Taxi-v4", render_mode="rgb_array")
         if max_steps is None:
             max_steps = 200
 
@@ -255,7 +255,7 @@ def stream_training(
     # the front with frames (frames are JPEG ~12 KB each).
     sample_every = max(1, episodes // 12)
     import gymnasium as _gym
-    sample_env = _gym.make("Taxi-v3", render_mode="rgb_array")
+    sample_env = _gym.make("Taxi-v4", render_mode="rgb_array")
 
     def _sample_frames(ep_idx: int) -> dict[str, Any]:
         obs, _ = sample_env.reset(seed=42_000 + ep_idx)
