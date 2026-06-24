@@ -149,11 +149,11 @@ def rollout_episode(
     # Brute Force: lift the 200-step TimeLimit so a truly random agent
     # has a chance to deliver, otherwise we just stop on truncation.
     if algo == "Brute Force":
-        env = gym.make("Taxi-v3", render_mode="rgb_array", max_episode_steps=300)
+        env = gym.make("Taxi-v4", render_mode="rgb_array", max_episode_steps=300)
         if max_steps is None:
             max_steps = 300
     else:
-        env = gym.make("Taxi-v3", render_mode="rgb_array")
+        env = gym.make("Taxi-v4", render_mode="rgb_array")
         if max_steps is None:
             max_steps = 200
 
@@ -255,7 +255,7 @@ def stream_training(
     # the front with frames (frames are JPEG ~12 KB each).
     sample_every = max(1, episodes // 12)
     import gymnasium as _gym
-    sample_env = _gym.make("Taxi-v3", render_mode="rgb_array")
+    sample_env = _gym.make("Taxi-v4", render_mode="rgb_array")
 
     def _sample_frames(ep_idx: int) -> dict[str, Any]:
         obs, _ = sample_env.reset(seed=42_000 + ep_idx)

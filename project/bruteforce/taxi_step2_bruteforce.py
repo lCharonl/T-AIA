@@ -92,7 +92,7 @@ def initialiser_environnement(render_mode, max_steps=200):
     Returns:
         gym.Env: environnement configuré
     """
-    return gym.make("Taxi-v3", render_mode=render_mode, max_episode_steps=max_steps)
+    return gym.make("Taxi-v4", render_mode=render_mode, max_episode_steps=max_steps)
 
 
 # SECTION 2 : DÉCODER L'ÉTAT

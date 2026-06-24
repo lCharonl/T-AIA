@@ -15,7 +15,7 @@ class BruteForceAgent(BaseAgent):
 
     name = "Brute Force"
 
-    def __init__(self, env_id: str = "Taxi-v3", seed: int = 0,
+    def __init__(self, env_id: str = "Taxi-v4", seed: int = 0,
                  max_episode_steps: int = 3000):
         super().__init__(env_id=env_id, seed=seed,
                          max_episode_steps=max_episode_steps)

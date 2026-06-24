@@ -42,7 +42,7 @@ class BaseAgent:
 
     name: str = "BaseAgent"
 
-    def __init__(self, env_id: str = "Taxi-v3", seed: int = 0,
+    def __init__(self, env_id: str = "Taxi-v4", seed: int = 0,
                  max_episode_steps: Optional[int] = None):
         self.env_id = env_id
         self.seed = seed

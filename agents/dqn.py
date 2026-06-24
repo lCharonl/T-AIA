@@ -55,7 +55,7 @@ class DQNAgent(BaseAgent):
 
     def __init__(
         self,
-        env_id: str = "Taxi-v3",
+        env_id: str = "Taxi-v4",
         seed: int = 0,
         alpha: float = 5e-4,         # learning rate (Adam)
         gamma: float = 0.99,
