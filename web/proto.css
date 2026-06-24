@@ -380,3 +380,117 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 .btn[data-busy="1"] { opacity: .7; cursor: wait; position: relative; pointer-events: none; }
 .btn[data-busy="1"]::after { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; margin-left: 8px; vertical-align: -1px; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   ALGO PAGES (une par algorithme)
+   ============================================================ */
+.algo-page .wrap { max-width: 960px; }
+.algo-hero {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(620px 220px at 0% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+    var(--panel);
+  padding: 30px 30px 26px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.algo-hero::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--accent); }
+.algo-fam { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.algo-title { font-family: var(--disp); font-weight: 700; font-size: 38px; line-height: 1.05; margin: 10px 0 0; letter-spacing: -0.02em; }
+.algo-lede { color: var(--txt-2); font-size: 15px; max-width: 70ch; margin: 14px 0 0; line-height: 1.55; }
+.algo-lede em { color: var(--txt); font-style: normal; font-weight: 600; }
+.algo-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.achip {
+  font-family: var(--mono); font-size: 11px; color: var(--txt-2);
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 100px;
+  padding: 5px 12px;
+}
+
+.algo-block { margin-bottom: 30px; }
+.algo-h3 {
+  font-family: var(--disp); font-weight: 700; font-size: 18px; margin: 0 0 16px;
+  padding-left: 12px; border-left: 3px solid var(--accent);
+}
+.algo-note { font-size: 13.5px; color: var(--txt-2); line-height: 1.6; margin: 14px 0; }
+.algo-note b { color: var(--txt); }
+.algo-note em { color: var(--txt); font-style: italic; }
+
+/* steps */
+.algo-steps { display: flex; flex-direction: column; gap: 12px; }
+.astep {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 18px;
+}
+.astep-n {
+  flex: none; width: 30px; height: 30px; border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  font-family: var(--disp); font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+.astep b { font-family: var(--disp); font-size: 14.5px; display: block; margin-bottom: 4px; }
+.astep p { font-size: 13px; color: var(--txt-2); margin: 0; line-height: 1.55; }
+.astep em { color: var(--txt); font-style: italic; }
+
+/* math */
+.algo-math { display: flex; flex-direction: column; }
+.formula-card {
+  background: #0B0F14; border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 20px; margin: 6px 0;
+}
+.formula-card.compare { background: var(--panel-2); }
+.formula-label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--txt-3); margin-bottom: 12px;
+}
+.formula { overflow-x: auto; overflow-y: hidden; color: var(--txt); }
+.formula mjx-container { color: var(--txt); }
+.formula::-webkit-scrollbar { height: 6px; }
+.formula::-webkit-scrollbar-thumb { background: #1c2530; border-radius: 6px; }
+.math-terms { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-direction: column; gap: 9px; }
+.math-terms li {
+  font-size: 13px; color: var(--txt-2); line-height: 1.55;
+  padding-left: 16px; position: relative;
+}
+.math-terms li::before { content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.math-terms b { color: var(--txt); font-weight: 600; }
+
+/* code */
+.algo-code {
+  background: #0B0F14; border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 20px; margin: 0;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--txt-2);
+  overflow-x: auto; white-space: pre;
+}
+.algo-code::-webkit-scrollbar { height: 6px; }
+.algo-code::-webkit-scrollbar-thumb { background: #1c2530; border-radius: 6px; }
+
+/* results */
+.algo-results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.ares {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 16px; text-align: center;
+}
+.ares.best { border-color: rgba(247,198,18,.35); box-shadow: inset 0 0 0 1px rgba(247,198,18,.12); }
+.ares-v { font-family: var(--disp); font-weight: 700; font-size: 30px; line-height: 1; color: var(--txt); }
+.ares-l { font-family: var(--mono); font-size: 11px; color: var(--txt-3); margin-top: 8px; }
+
+/* hyperparam sensitivity grid */
+.hp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.hp-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.hp-name { font-family: var(--disp); font-weight: 600; font-size: 13.5px; margin-bottom: 10px; color: var(--txt); }
+.hp-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+.hp-table td { padding: 7px 6px; border-bottom: 1px solid var(--line-soft); color: var(--txt-2); }
+.hp-table td:first-child { color: var(--txt); font-weight: 700; }
+.hp-table td:nth-child(2), .hp-table td:nth-child(3) { text-align: right; }
+.hp-table tr:last-child td { border-bottom: 0; }
+.hp-table tr.hp-opt td { color: var(--accent); }
+.hp-table tr.hp-opt td:first-child::after { content: " ◆ opt"; font-size: 9.5px; letter-spacing: .04em; }
+
+@media (max-width: 720px) {
+  .algo-results, .hp-grid { grid-template-columns: 1fr 1fr; }
+  .algo-title { font-size: 30px; }
+}

@@ -8,6 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="proto.css" />
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["$$", "$$"]] },
+    svg: { fontCache: "global" },
+    options: { enableMenu: false },
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script" async></script>
 </head>
 <body>
     <!-- ============ VIEWPORT (full-screen app) ============ -->
@@ -45,6 +53,23 @@
             <span>Reward shaping</span>
           </button>
           -->
+          <div class="nav-sec">Algorithmes</div>
+          <button class="nav-link" data-go="algo-brute">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/><circle cx="12" cy="12" r="1"/></svg>
+            <span>Force brute</span>
+          </button>
+          <button class="nav-link" data-go="algo-qlearning">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 13h4v4h-4z"/></svg>
+            <span>Q-Learning</span>
+          </button>
+          <button class="nav-link" data-go="algo-sarsa">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l5-5-5-5"/><path d="M12 19h8"/></svg>
+            <span>SARSA</span>
+          </button>
+          <button class="nav-link" data-go="algo-dqn">
+            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6.5l3 4.5M7 17.5l3-4.5M14 11l3-3.5M14 13l3 3.5"/></svg>
+            <span>Deep Q-Learning</span>
+          </button>
           <div class="nav-sec">Suivi</div>
           <button class="nav-link" data-go="history">
             <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
@@ -347,6 +372,379 @@
               <button class="btn ghost xs" id="h-clear">Vider l'historique</button>
             </div>
             <div class="hist-list" id="hist-list"></div>
+          </div>
+        </section>
+
+        <!-- ============ ALGO · FORCE BRUTE ============ -->
+        <section class="screen algo-page" id="screen-algo-brute" style="--accent:#7F8B9A">
+          <div class="wrap">
+            <div class="algo-hero">
+              <span class="algo-fam">Sans apprentissage · politique aléatoire</span>
+              <h2 class="algo-title">Force brute</h2>
+              <p class="algo-lede">Agir au hasard à chaque pas, sans mémoire ni stratégie. C'est la référence imposée : elle mesure le coût réel d'une politique qui n'apprend rien, et donne l'étalon que les trois algorithmes appris doivent battre.</p>
+              <div class="algo-chips">
+                <span class="achip">6 actions équiprobables</span>
+                <span class="achip">Aucune table, aucun poids</span>
+                <span class="achip">Aucune convergence</span>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Comment ça marche</h3>
+              <div class="algo-steps">
+                <div class="astep"><span class="astep-n">1</span><div><b>Tirer une action au hasard</b><p>À chaque pas, choisir uniformément l'une des 6 actions : aucun calcul, aucune préférence.</p></div></div>
+                <div class="astep"><span class="astep-n">2</span><div><b>Exécuter et encaisser</b><p>L'environnement renvoie une récompense, mais elle n'est <em>jamais mémorisée</em>.</p></div></div>
+                <div class="astep"><span class="astep-n">3</span><div><b>Répéter jusqu'à la dépose</b><p>On boucle au hasard jusqu'à livrer le passager ou atteindre la limite de pas.</p></div></div>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">L'aspect mathématique</h3>
+              <div class="algo-math">
+                <div class="formula-card">
+                  <div class="formula-label">Politique — choix d'action uniforme</div>
+                  <div class="formula">$$ \pi(a \mid s) = \frac{1}{|\mathcal{A}|} = \frac{1}{6} \qquad \forall\, a \in \mathcal{A},\ \forall\, s \in \mathcal{S} $$</div>
+                </div>
+                <p class="algo-note">Il n'y a <em>aucune règle de mise à jour</em> : ni table de valeurs, ni gradient. L'action suivante est indépendante de l'état et de toutes les récompenses passées :</p>
+                <div class="formula-card">
+                  <div class="formula-label">Aucun apprentissage</div>
+                  <div class="formula">$$ a_t \sim \mathcal{U}\{0, 1, \dots, 5\}, \qquad \Pr(a_t \mid s_t, a_{t-1}, r_{t-1}, \dots) = \Pr(a_t) $$</div>
+                </div>
+                <p class="algo-note">Le retour d'un épisode reste défini comme la somme actualisée des récompenses, mais l'agent ne cherche jamais à le maximiser :</p>
+                <div class="formula-card">
+                  <div class="formula-label">Retour d'un épisode (mesuré, jamais optimisé)</div>
+                  <div class="formula">$$ G_t = \sum_{k=0}^{T} \gamma^{k}\, r_{t+k} $$</div>
+                </div>
+                <ul class="math-terms">
+                  <li><b>\(\mathcal{A}\)</b> — l'ensemble des 6 actions (4 déplacements, prise en charge, dépose).</li>
+                  <li><b>\(\mathcal{S}\)</b> — les 500 états (25 cases × 5 positions passager × 4 destinations).</li>
+                  <li><b>\(\mathcal{U}\)</b> — la loi uniforme : chaque action a exactement la même probabilité.</li>
+                  <li><b>\(G_t\)</b> — le retour ; ici purement descriptif, l'agent n'a pas de fonction de valeur pour l'estimer.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Pseudo-code</h3>
+              <pre class="algo-code"># aucune table, aucun poids
+pour chaque pas :
+    a = random(0..5)
+    s, r, fini = env.step(a)
+    # on n'apprend rien de r</pre>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Visualisation — distribution des pas</h3>
+              <p class="algo-note">Répartition des pas-pour-résoudre sur 100 épisodes : <em>aucune concentration</em>, une longue traîne au-delà de 2000 pas (et des épisodes tronqués). À comparer au pic net sur 13 pas des trois algos appris.</p>
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Pas par épisode · 100 épisodes</span><span class="legend-inline"><i style="background:#7F8B9A"></i><span>nombre d'épisodes</span></span></div>
+                <svg id="algoBruteChart" class="chart-svg" style="width:100%;height:240px"></svg>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Résultats mesurés</h3>
+              <p class="algo-note">Évaluation sur 100 épisodes, sans <em>truncation</em>, pour mesurer le coût réel d'une politique aléatoire.</p>
+              <div class="algo-results">
+                <div class="ares"><div class="ares-v" style="color:#7F8B9A">1574</div><div class="ares-l">pas / épisode</div></div>
+                <div class="ares"><div class="ares-v" style="color:#F26D6D">−6130</div><div class="ares-l">récompense moy.</div></div>
+                <div class="ares"><div class="ares-v" style="color:#F26D6D">508</div><div class="ares-l">pénalités</div></div>
+                <div class="ares"><div class="ares-v">78 %</div><div class="ares-l">réussite</div></div>
+              </div>
+              <p class="algo-note" style="margin-top:14px">Soit <b>≈ ×120 plus de pas</b> que la politique optimale (13 pas) pour résoudre une même course.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ALGO · Q-LEARNING ============ -->
+        <section class="screen algo-page" id="screen-algo-qlearning" style="--accent:#2FD4BF">
+          <div class="wrap">
+            <div class="algo-hero">
+              <span class="algo-fam">Différence temporelle · off-policy</span>
+              <h2 class="algo-title">Q-Learning</h2>
+              <p class="algo-lede">Apprendre une table Q en visant toujours la <em>meilleure</em> action future. C'est l'algorithme gagnant sur Taxi-v3 : le plus simple qui résout parfaitement le problème — 13 pas, 100 % de réussite, zéro pénalité.</p>
+              <div class="algo-chips">
+                <span class="achip">Table Q · 500 × 6</span>
+                <span class="achip">Cible : max Q(s′,·) — optimale</span>
+                <span class="achip">Converge à l'optimum</span>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Comment ça marche</h3>
+              <div class="algo-steps">
+                <div class="astep"><span class="astep-n">1</span><div><b>Choisir via ε-greedy</b><p>Avec probabilité ε on explore au hasard, sinon on exploite la meilleure action connue de la table Q.</p></div></div>
+                <div class="astep"><span class="astep-n">2</span><div><b>Agir et observer</b><p>On exécute l'action, on reçoit la récompense r et le nouvel état s′.</p></div></div>
+                <div class="astep"><span class="astep-n">3</span><div><b>Mettre à jour vers l'optimum</b><p>La cible utilise max Q(s′,·) : la meilleure action future, <em>même si on a exploré</em>. C'est ce qui rend l'algo off-policy.</p></div></div>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">L'aspect mathématique</h3>
+              <div class="algo-math">
+                <div class="formula-card">
+                  <div class="formula-label">Règle de mise à jour (Bellman, contrôle optimal)</div>
+                  <div class="formula">$$ Q(s,a) \leftarrow Q(s,a) + \alpha\Big[\, \underbrace{r + \gamma \max_{a'} Q(s',a')}_{\text{cible}} - Q(s,a) \,\Big] $$</div>
+                </div>
+                <p class="algo-note">Le terme entre crochets est l'<b>erreur de différence temporelle</b> \(\delta\) — l'écart entre ce qu'on prédisait et ce qu'on observe :</p>
+                <div class="formula-card">
+                  <div class="formula-label">Erreur TD</div>
+                  <div class="formula">$$ \delta_t = r + \gamma \max_{a'} Q(s',a') - Q(s,a) $$</div>
+                </div>
+                <p class="algo-note">Politique d'exploration suivie pendant l'apprentissage :</p>
+                <div class="formula-card">
+                  <div class="formula-label">ε-greedy</div>
+                  <div class="formula">$$ a = \begin{cases} \text{action aléatoire} & \text{avec probabilité } \varepsilon \\[4pt] \arg\max_{a'} Q(s,a') & \text{avec probabilité } 1-\varepsilon \end{cases} $$</div>
+                </div>
+                <ul class="math-terms">
+                  <li><b>\(Q(s,a)\)</b> — valeur estimée de l'action \(a\) dans l'état \(s\) (une case de la table 500 × 6).</li>
+                  <li><b>\(\alpha\)</b> — taux d'apprentissage : poids de la nouvelle information (0 = n'apprend rien, 1 = remplace tout).</li>
+                  <li><b>\(r\)</b> — récompense immédiate reçue après l'action.</li>
+                  <li><b>\(\gamma\)</b> — facteur d'actualisation : importance des récompenses futures (\(\to 1\) = prévoyant, \(\to 0\) = myope).</li>
+                  <li><b>\(\max_{a'} Q(s',a')\)</b> — la meilleure valeur dans l'état suivant : la cible reste optimale même si on a exploré → <b>off-policy</b>.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Pseudo-code</h3>
+              <pre class="algo-code">Q = table de zéros (500 × 6)
+pour chaque épisode :
+    s = env.reset()
+    tant que non fini :
+        a = ε_greedy(Q, s)
+        s', r, fini = env.step(a)
+        Q[s,a] += α * (r + γ * max(Q[s']) - Q[s,a])
+        s = s'</pre>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Visualisation — convergence &amp; exploration</h3>
+              <p class="algo-note">Les pas par épisode (moyenne glissante) chutent de ~200 vers l'optimum à <b>13 pas</b>, pendant que l'exploration ε décroît : l'agent bascule de l'exploration vers l'exploitation.</p>
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Pas / épisode &amp; ε · 2000 épisodes</span><span class="legend-inline"><i style="background:#2FD4BF"></i><span>pas/épisode</span><i style="background:#F7C612"></i><span>ε (exploration, ×200)</span></span></div>
+                <svg id="algoQChart" class="chart-svg" style="width:100%;height:240px"></svg>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Étude de sensibilité des hyperparamètres</h3>
+              <p class="algo-note">Un paramètre varie, les autres restent figés (Q-Learning sur Taxi-v3). En <b>gras</b> : la valeur optimale retenue.</p>
+              <div class="hp-grid">
+                <div class="hp-card">
+                  <div class="hp-name">Taux d'apprentissage α</div>
+                  <table class="hp-table">
+                    <tr><td>0.05</td><td>109.5 pas</td><td>48 %</td></tr>
+                    <tr><td>0.10</td><td>29.6 pas</td><td>91 %</td></tr>
+                    <tr class="hp-opt"><td>0.40</td><td>13.0 pas</td><td>100 %</td></tr>
+                    <tr><td>0.70</td><td>13.0 pas</td><td>100 %</td></tr>
+                    <tr><td>1.00</td><td>13.0 pas</td><td>100 %</td></tr>
+                  </table>
+                </div>
+                <div class="hp-card">
+                  <div class="hp-name">Décroissance d'exploration ε-decay</div>
+                  <table class="hp-table">
+                    <tr><td>0.99</td><td>13.0 pas</td><td>100 %</td></tr>
+                    <tr class="hp-opt"><td>0.999</td><td>13.0 pas</td><td>100 %</td></tr>
+                    <tr><td>0.9999</td><td>12.9 pas</td><td>100 %</td></tr>
+                  </table>
+                </div>
+                <div class="hp-card">
+                  <div class="hp-name">Facteur d'actualisation γ</div>
+                  <table class="hp-table">
+                    <tr><td>0.50</td><td>33.3 pas</td><td>89 %</td></tr>
+                    <tr><td>0.85</td><td>12.9 pas</td><td>100 %</td></tr>
+                    <tr><td>0.95</td><td>12.9 pas</td><td>100 %</td></tr>
+                    <tr class="hp-opt"><td>0.99</td><td>13.0 pas</td><td>100 %</td></tr>
+                  </table>
+                </div>
+                <div class="hp-card">
+                  <div class="hp-name">Épisodes d'entraînement</div>
+                  <table class="hp-table">
+                    <tr><td>200</td><td>186.5 pas</td><td>7 %</td></tr>
+                    <tr><td>500</td><td>44.5 pas</td><td>83 %</td></tr>
+                    <tr><td>1000</td><td>14.8 pas</td><td>99 %</td></tr>
+                    <tr class="hp-opt"><td>2000</td><td>13.0 pas</td><td>100 %</td></tr>
+                    <tr><td>5000</td><td>13.0 pas</td><td>100 %</td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Résultats mesurés</h3>
+              <div class="algo-results">
+                <div class="ares best"><div class="ares-v" style="color:#2FD4BF">13.0</div><div class="ares-l">pas / épisode</div></div>
+                <div class="ares"><div class="ares-v" style="color:#54D08A">+8.0</div><div class="ares-l">récompense moy.</div></div>
+                <div class="ares"><div class="ares-v">0</div><div class="ares-l">pénalités</div></div>
+                <div class="ares"><div class="ares-v" style="color:#2FD4BF">100 %</div><div class="ares-l">réussite</div></div>
+              </div>
+              <p class="algo-note" style="margin-top:14px">🥇 <b>Gagnant.</b> Hors-politique, table 500 × 6. Le plus simple qui résout parfaitement le problème.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ALGO · SARSA ============ -->
+        <section class="screen algo-page" id="screen-algo-sarsa" style="--accent:#A78BFA">
+          <div class="wrap">
+            <div class="algo-hero">
+              <span class="algo-fam">Différence temporelle · on-policy</span>
+              <h2 class="algo-title">SARSA</h2>
+              <p class="algo-lede">Même table Q que Q-Learning, mais l'apprentissage porte sur l'action <em>réellement suivie</em>. La variante prudente : sur Taxi-v3 sans piège, prudence et audace convergent vers le même optimum.</p>
+              <div class="algo-chips">
+                <span class="achip">Table Q · 500 × 6</span>
+                <span class="achip">Cible : Q(s′,a′) — suivie</span>
+                <span class="achip">Prudent face au risque</span>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Comment ça marche</h3>
+              <div class="algo-steps">
+                <div class="astep"><span class="astep-n">1</span><div><b>Choisir a via ε-greedy</b><p>Même départ que Q-Learning : exploration / exploitation sur la table Q.</p></div></div>
+                <div class="astep"><span class="astep-n">2</span><div><b>Choisir aussi a′</b><p>On observe s′ puis on choisit <em>déjà</em> l'action suivante a′ (toujours ε-greedy) — d'où le nom <b>S-A-R-S-A</b> (State, Action, Reward, State, Action).</p></div></div>
+                <div class="astep"><span class="astep-n">3</span><div><b>Mettre à jour vers a′</b><p>La cible utilise Q(s′,a′) : l'action réellement choisie, <em>pas le maximum</em>. L'algo est on-policy.</p></div></div>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">L'aspect mathématique</h3>
+              <div class="algo-math">
+                <div class="formula-card">
+                  <div class="formula-label">Règle de mise à jour SARSA</div>
+                  <div class="formula">$$ Q(s,a) \leftarrow Q(s,a) + \alpha\Big[\, \underbrace{r + \gamma\, Q(s',a')}_{\text{cible}} - Q(s,a) \,\Big] $$</div>
+                </div>
+                <p class="algo-note">La seule différence avec Q-Learning : la cible utilise \(Q(s',a')\) — la valeur de l'action <b>réellement choisie</b> par ε-greedy — au lieu de \(\max_{a'} Q(s',a')\).</p>
+                <div class="formula-card compare">
+                  <div class="formula-label">Comparaison des cibles</div>
+                  <div class="formula">$$ \begin{aligned} \text{SARSA (on-policy)} &: \quad r + \gamma\, Q(s',\,a') \\[6pt] \text{Q-Learning (off-policy)} &: \quad r + \gamma \max_{a'} Q(s',a') \end{aligned} $$</div>
+                </div>
+                <ul class="math-terms">
+                  <li><b>\(a'\)</b> — l'action suivante <em>effectivement</em> sélectionnée par la politique ε-greedy dans l'état \(s'\).</li>
+                  <li><b>on-policy</b> — l'agent apprend la valeur de la politique qu'il suit vraiment, exploration comprise.</li>
+                  <li><b>Conséquence</b> — si l'exploration peut mener à une pénalité, SARSA en tient compte et reste prudent, là où Q-Learning suppose un comportement futur optimal.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Pseudo-code</h3>
+              <pre class="algo-code">Q = table de zéros (500 × 6)
+pour chaque épisode :
+    s = env.reset()
+    a = ε_greedy(Q, s)
+    tant que non fini :
+        s', r, fini = env.step(a)
+        a' = ε_greedy(Q, s')          # on choisit déjà la suivante
+        Q[s,a] += α * (r + γ * Q[s',a'] - Q[s,a])
+        s, a = s', a'</pre>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Visualisation — on-policy vs off-policy</h3>
+              <p class="algo-note">Les courbes de convergence de SARSA et de Q-Learning atteignent le <b>même optimum</b> (≈13 pas). SARSA, plus prudent pendant l'apprentissage, converge un cheveu plus tard — sur Taxi-v3 sans piège, prudence et audace se rejoignent.</p>
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Pas / épisode (moyenne glissante)</span><span class="legend-inline"><i style="background:#A78BFA"></i><span>SARSA</span><i style="background:#2FD4BF"></i><span>Q-Learning</span></span></div>
+                <svg id="algoSarsaChart" class="chart-svg" style="width:100%;height:240px"></svg>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Résultats mesurés</h3>
+              <div class="algo-results">
+                <div class="ares"><div class="ares-v" style="color:#A78BFA">13.1</div><div class="ares-l">pas / épisode</div></div>
+                <div class="ares"><div class="ares-v" style="color:#54D08A">+8.0</div><div class="ares-l">récompense moy.</div></div>
+                <div class="ares"><div class="ares-v">0</div><div class="ares-l">pénalités</div></div>
+                <div class="ares"><div class="ares-v" style="color:#A78BFA">100 %</div><div class="ares-l">réussite</div></div>
+              </div>
+              <p class="algo-note" style="margin-top:14px">🥈 <b>SARSA confirme.</b> Variante on-policy, même Q-table — strictement équivalente à Q-Learning ici (13.05 pas / 100 %). Sur Taxi-v3 sans piège, prudence et audace convergent.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ALGO · DEEP Q-LEARNING ============ -->
+        <section class="screen algo-page" id="screen-algo-dqn" style="--accent:#5B9DF0">
+          <div class="wrap">
+            <div class="algo-hero">
+              <span class="algo-fam">Approximation · réseau de neurones</span>
+              <h2 class="algo-title">Deep Q-Learning</h2>
+              <p class="algo-lede">Remplacer la table par un réseau de neurones qui <em>généralise</em>. Surdimensionné sur 500 états, mais indispensable au-delà (ex. 2 passagers, états continus) là où une table deviendrait inexploitable.</p>
+              <div class="algo-chips">
+                <span class="achip">Réseau Q(s,a; θ)</span>
+                <span class="achip">Mémoire de rejeu</span>
+                <span class="achip">Réseau cible figé θ⁻</span>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Comment ça marche</h3>
+              <div class="algo-steps">
+                <div class="astep"><span class="astep-n">1</span><div><b>Un réseau estime Q</b><p>Au lieu d'une table, un réseau Q(s,a; θ) prédit les 6 valeurs à partir de l'état encodé.</p></div></div>
+                <div class="astep"><span class="astep-n">2</span><div><b>Mémoire de rejeu</b><p>Les transitions (s, a, r, s′) sont stockées puis ré-échantillonnées en mini-lots : ça <em>décorrèle</em> l'apprentissage.</p></div></div>
+                <div class="astep"><span class="astep-n">3</span><div><b>Réseau cible figé</b><p>Une copie gelée θ⁻ calcule la cible et n'est mise à jour que périodiquement : ça <em>stabilise</em> la descente de gradient.</p></div></div>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">L'aspect mathématique</h3>
+              <div class="algo-math">
+                <div class="formula-card">
+                  <div class="formula-label">Fonction de perte (erreur TD au carré)</div>
+                  <div class="formula">$$ L(\theta) = \Big(\, \underbrace{r + \gamma \max_{a'} Q(s',a';\, \theta^{-})}_{\text{cible figée}} - Q(s,a;\, \theta) \,\Big)^{2} $$</div>
+                </div>
+                <p class="algo-note">On minimise cette perte par descente de gradient stochastique sur un mini-lot \(\mathcal{B}\) d'expériences tirées de la mémoire de rejeu :</p>
+                <div class="formula-card">
+                  <div class="formula-label">Mise à jour des poids</div>
+                  <div class="formula">$$ \theta \leftarrow \theta - \eta\, \nabla_{\theta} \frac{1}{|\mathcal{B}|} \sum_{(s,a,r,s') \in \mathcal{B}} L(\theta) $$</div>
+                </div>
+                <p class="algo-note">Le réseau cible n'est synchronisé que toutes les \(C\) étapes, ce qui évite que la cible « poursuive » le réseau en ligne :</p>
+                <div class="formula-card">
+                  <div class="formula-label">Synchronisation périodique</div>
+                  <div class="formula">$$ \theta^{-} \leftarrow \theta \quad \text{toutes les } C \text{ étapes} $$</div>
+                </div>
+                <ul class="math-terms">
+                  <li><b>\(\theta\)</b> — les poids du réseau <em>en ligne</em>, mis à jour à chaque pas de gradient.</li>
+                  <li><b>\(\theta^{-}\)</b> — les poids du réseau <em>cible</em>, copie gelée de \(\theta\) rafraîchie toutes les \(C\) étapes.</li>
+                  <li><b>\(\eta\)</b> — le pas d'apprentissage de l'optimiseur (ex. Adam).</li>
+                  <li><b>\(\mathcal{B}\)</b> — un mini-lot d'expériences passées, ré-échantillonné pour décorréler les transitions.</li>
+                  <li><b>\(\nabla_{\theta}\)</b> — le gradient de la perte ; remplace la mise à jour tabulaire directe de Q-Learning.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Pseudo-code</h3>
+              <pre class="algo-code">θ  = réseau initialisé au hasard
+θ⁻ = copie de θ ;  D = mémoire de rejeu
+pour chaque pas :
+    a = ε_greedy(Q(·; θ), s)
+    s', r, fini = env.step(a)
+    D.ajouter((s, a, r, s'))
+    lot = D.échantillon(batch_size)
+    cible = r + γ * max(Q(s'; θ⁻))
+    θ -= η * ∇ (cible - Q(s,a; θ))²
+    tous les C pas : θ⁻ = θ</pre>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Visualisation — table vs réseau</h3>
+              <p class="algo-note">Le DQN atteint quasi l'optimum (~14.8 pas) mais <b>plus lentement et plus bruité</b> que la table de Q-Learning : c'est le coût de l'approximation par réseau sur un espace de seulement 500 états.</p>
+              <div class="panel chart-panel">
+                <div class="panel-head"><span class="panel-title sm">Pas / épisode (moyenne glissante)</span><span class="legend-inline"><i style="background:#5B9DF0"></i><span>Deep Q-Learning</span><i style="background:#2FD4BF"></i><span>Q-Learning (table)</span></span></div>
+                <svg id="algoDqnChart" class="chart-svg" style="width:100%;height:240px"></svg>
+              </div>
+            </div>
+
+            <div class="algo-block">
+              <h3 class="algo-h3">Résultats mesurés</h3>
+              <div class="algo-results">
+                <div class="ares"><div class="ares-v" style="color:#5B9DF0">14.8</div><div class="ares-l">pas / épisode</div></div>
+                <div class="ares"><div class="ares-v" style="color:#54D08A">+6.0</div><div class="ares-l">récompense moy.</div></div>
+                <div class="ares"><div class="ares-v">0</div><div class="ares-l">pénalités</div></div>
+                <div class="ares"><div class="ares-v" style="color:#5B9DF0">99 %</div><div class="ares-l">réussite</div></div>
+              </div>
+              <p class="algo-note" style="margin-top:14px">🥉 <b>DQN vérifié.</b> Le réseau atteint quasi l'optimum (14.8 pas / 99 % en ~4000 épisodes). Surdimensionné sur 500 états, indispensable au-delà.</p>
+            </div>
           </div>
         </section>
 

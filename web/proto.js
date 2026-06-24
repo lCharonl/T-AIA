@@ -850,6 +850,81 @@
   });
 
   /* ============================================================
+     6bis. ALGO PAGES — real measured curves
+     Données mesurées par de vrais entraînements et exportées dans
+     web/algo_curves.json (cf. tools/export_algo_curves.py). Rendues
+     une fois au chargement via les mêmes helpers SVG.
+     ============================================================ */
+  async function drawAlgoCharts() {
+    let D;
+    try {
+      const res = await fetch("algo_curves.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      D = await res.json();
+    } catch (e) {
+      console.warn("algo_curves.json introuvable — graphiques algo non rendus.", e);
+      return;
+    }
+    const Y = { W: 620, H: 240, yMin: 0, yMax: 210, yTicks: [0, 50, 100, 150, 200] };
+    const xT = (ep) => [
+      { i: 0, label: "0" },
+      { i: 19, label: Math.round(ep / 3) + "" },
+      { i: 39, label: Math.round((2 * ep) / 3) + "" },
+      { i: 59, label: ep + "" },
+    ];
+
+    // ── Force brute : histogramme des pas-pour-résoudre (100 épisodes) ──
+    const bf = document.getElementById("algoBruteChart");
+    if (bf && D.brute) {
+      const top = Math.max(5, Math.ceil(Math.max(...D.brute.counts) / 5) * 5);
+      const bars = D.brute.labels.map((name, i) => ({
+        name, v: D.brute.counts[i], label: String(D.brute.counts[i]), color: "#7F8B9A",
+      }));
+      barChart(bf, {
+        W: 620, H: 240, min: 0, max: top,
+        yTicks: [0, Math.round(top / 2), top], bars,
+      });
+    }
+
+    // ── Q-Learning : convergence des pas + décroissance de ε (mise à l'échelle ×200) ──
+    const q = document.getElementById("algoQChart");
+    if (q && D.qlearning) {
+      const eps = D.qlearning.epsilon.map((v) => v * 200);
+      lineChart(q, {
+        ...Y, xTicks: xT(D.qlearning.episodes),
+        series: [
+          { data: eps, color: "#F7C612", w: 2, dim: true },
+          { data: D.qlearning.steps, color: "#2FD4BF", area: "#2FD4BF" },
+        ],
+      });
+    }
+
+    // ── SARSA vs Q-Learning (même axe d'épisodes) ──
+    const sa = document.getElementById("algoSarsaChart");
+    if (sa && D.sarsa) {
+      lineChart(sa, {
+        ...Y, xTicks: xT(D.sarsa.episodes),
+        series: [
+          { data: D.sarsa.qlearning, color: "#2FD4BF", w: 2, dim: true },
+          { data: D.sarsa.sarsa, color: "#A78BFA" },
+        ],
+      });
+    }
+
+    // ── DQN vs table de Q-Learning (même axe d'épisodes) ──
+    const dq = document.getElementById("algoDqnChart");
+    if (dq && D.dqn) {
+      lineChart(dq, {
+        ...Y, xTicks: xT(D.dqn.episodes),
+        series: [
+          { data: D.dqn.qlearning, color: "#2FD4BF", w: 2, dim: true },
+          { data: D.dqn.dqn, color: "#5B9DF0" },
+        ],
+      });
+    }
+  }
+
+  /* ============================================================
      7. INIT
      ============================================================ */
   async function loadOptimized() {
@@ -872,6 +947,7 @@
     if (st) lineChart(st, { W: 360, H: 200, yMin: 0, yMax: 210, yTicks: [0, 50, 100, 150, 200], xTicks: xTicks6k, series: [{ data: [], color: "#F7C612" }] });
     refreshHistory();
     resetEpisode();
+    drawAlgoCharts();
     go("land");
   });
 })();
