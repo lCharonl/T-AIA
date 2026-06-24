@@ -6,7 +6,7 @@ pygame>=2.5.0
 
 # Deep Q-Learning
 torch>=2.0
-triton>=3.0     # required by torch>=2.6 on certain ops; provides triton.backends
+#triton>=3.0     # required by torch>=2.6 on certain ops; provides triton.backends
 
 # Web platform (FastAPI + WebSocket)
 fastapi>=0.110
