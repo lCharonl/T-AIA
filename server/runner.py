@@ -101,10 +101,52 @@ from threading import Lock
 _AGENT_CACHE: dict[str, BaseAgent] = {}
 _AGENT_LOCK = Lock()
 
+# Cache des épisodes déjà rendus. Clef = (algo, params, train_ep, seed,
+# episode_seed_offset). Valeur = dict {trace, frames, solved}. Premier
+# clic = calcul (~1.5s pour rollout + render + base64), clics suivants
+# avec MÊMES paramètres = retour immédiat (~5ms). Le cache est borné
+# pour éviter une fuite mémoire si l'utilisateur joue avec beaucoup de
+# seeds différents.
+_EPISODE_CACHE: dict[str, dict] = {}
+_EPISODE_LOCK = Lock()
+_EPISODE_CACHE_MAX = 32
+
+
+def _norm_params(params: dict) -> dict:
+    # Le navigateur sérialise 1.0 en "1" (JS confond int/float). Côté serveur
+    # json.dumps(1.0) = "1.0". On normalise tout en float pour que la clé
+    # MD5 soit identique quelle que soit la source (curl vs browser).
+    out: dict = {}
+    for k, v in (params or {}).items():
+        if isinstance(v, bool):
+            out[k] = v
+        elif isinstance(v, (int, float)):
+            out[k] = float(v)
+        else:
+            out[k] = v
+    return out
+
 
 def _agent_key(algo: str, params: dict, train_episodes: int, seed: int) -> str:
-    payload = json.dumps([algo, params, train_episodes, seed], sort_keys=True, default=str)
+    payload = json.dumps(
+        [algo, _norm_params(params), train_episodes, seed],
+        sort_keys=True, default=str,
+    )
     return hashlib.md5(payload.encode()).hexdigest()
+
+
+def _episode_key(algo: str, params: dict, train_episodes: int, seed: int,
+                 episode_seed_offset: int) -> str:
+    payload = json.dumps(
+        [algo, _norm_params(params), train_episodes, seed, episode_seed_offset],
+        sort_keys=True, default=str,
+    )
+    return hashlib.md5(payload.encode()).hexdigest()
+
+
+class AgentNotReady(Exception):
+    """Levée quand on demande un agent qui n'est pas en cache et que
+    `allow_train=False` interdit de l'entraîner à la volée."""
 
 
 def _get_or_train_agent(
@@ -112,12 +154,18 @@ def _get_or_train_agent(
     params: dict,
     train_episodes: int,
     seed: int,
+    allow_train: bool = True,
 ) -> BaseAgent:
     key = _agent_key(algo, params or {}, train_episodes, seed)
     with _AGENT_LOCK:
         agent = _AGENT_CACHE.get(key)
     if agent is not None:
         return agent
+    if not allow_train:
+        raise AgentNotReady(
+            f"L'agent {algo} ({train_episodes} ép.) n'est pas encore prêt. "
+            f"Attendez la fin du warmup (peut prendre ~5 min pour DQN au premier lancement)."
+        )
     agent = build_agent(algo, params=params or {}, seed=seed)
     if train_episodes > 0:
         agent.train(episodes=train_episodes)
@@ -140,11 +188,29 @@ def rollout_episode(
     max_steps: Optional[int] = None,
     include_frames: bool = True,
     episode_seed_offset: int = 99_999,
+    allow_train: bool = True,
 ) -> dict[str, Any]:
     """Train (or fetch from cache), then play one greedy episode. Returns
     the full step trace + (optionally) the Gymnasium-rendered RGB frames
-    as base64 PNG strings — usable directly as <img src=…>."""
-    agent: BaseAgent = _get_or_train_agent(algo, params or {}, train_episodes, seed)
+    as base64 PNG strings — usable directly as <img src=…>.
+
+    Episode-level cache : si la même requête (algo, params, train_ep,
+    seed, episode_seed_offset) a déjà été calculée, retour immédiat
+    sans re-rendre les frames.
+
+    allow_train=False : si l'agent n'est pas en cache, lève AgentNotReady
+    au lieu de l'entraîner. Utilisé par /api/episode pour empêcher des
+    trainings parallèles déclenchés par des clics utilisateur."""
+    if include_frames:
+        ep_key = _episode_key(algo, params or {}, train_episodes, seed, episode_seed_offset)
+        with _EPISODE_LOCK:
+            cached = _EPISODE_CACHE.get(ep_key)
+        if cached is not None:
+            return cached
+
+    agent: BaseAgent = _get_or_train_agent(
+        algo, params or {}, train_episodes, seed, allow_train=allow_train
+    )
 
     # Brute Force: lift the 200-step TimeLimit so a truly random agent
     # has a chance to deliver, otherwise we just stop on truncation.
@@ -157,6 +223,17 @@ def rollout_episode(
         if max_steps is None:
             max_steps = 200
 
+    # Brute Force = 300 steps → 300 frames. PNG full-res serait ~45 s à
+    # encoder et ~25 MB de payload. On garde JPEG mais qualité haute (90)
+    # SANS resize : visuellement quasi identique au PNG, ~4x plus rapide,
+    # ~6x plus léger. Les algos appris (~15 frames) restent en PNG full-res.
+    use_jpeg = (algo == "Brute Force")
+
+    def _encode(f):
+        if use_jpeg:
+            return _frame_to_b64(f, jpeg=True, half_res=False, quality=90)
+        return _frame_to_b64(f)
+
     try:
         obs, _ = env.reset(seed=seed + episode_seed_offset)
         state = int(obs)
@@ -165,7 +242,7 @@ def rollout_episode(
             "step": 0, "action": -1, "action_name": "—", "reward": 0.0,
             **decode_state(state), "done": False, "carrying": False,
         }]
-        frames: list[str] = [_frame_to_b64(frame0)] if frame0 is not None else []
+        frames: list[str] = [_encode(frame0)] if frame0 is not None else []
         cum = 0.0
         carrying = False
         for step in range(max_steps):
@@ -191,17 +268,27 @@ def rollout_episode(
             if include_frames:
                 f = env.render()
                 if f is not None:
-                    frames.append(_frame_to_b64(f))
+                    frames.append(_encode(f))
             if done:
                 break
     finally:
         env.close()
-    return {
+
+    result = {
         "algo": algo,
         "trace": trace,
         "frames": frames,
         "solved": trace[-1]["done"],
     }
+    # Mettre en cache pour éviter de re-rendre les frames au prochain clic
+    # avec les mêmes paramètres. Borné à _EPISODE_CACHE_MAX entrées (FIFO).
+    if include_frames:
+        with _EPISODE_LOCK:
+            _EPISODE_CACHE[ep_key] = result
+            if len(_EPISODE_CACHE) > _EPISODE_CACHE_MAX:
+                oldest = next(iter(_EPISODE_CACHE))
+                del _EPISODE_CACHE[oldest]
+    return result
 
 
 # ── Streaming training generator (for /ws/train) ──────────────────────────

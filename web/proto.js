@@ -118,6 +118,46 @@
     return out;
   }
 
+  /* ---------- helper : rail "Modèle actif" + "Pas / épisode" ---------- */
+  // Maps algo → label & key utilisé dans le cache benchmark.
+  const RAIL_BENCH_LABEL = {
+    "Q-Learning": "Q-Learning — optimisé",
+    "SARSA": "SARSA — optimisé",
+    "Deep Q-Learning": "Deep Q-Learning — optimisé",
+    "Brute Force": "Brute Force (no truncation)",
+  };
+  // Cache local de la dernière mesure benchmark (récupérée 1x).
+  let _railBenchRows = null;
+  async function ensureRailBench() {
+    if (_railBenchRows) return _railBenchRows;
+    try {
+      const data = await T.api.getBenchmarkCache();
+      if (data && data.cached) _railBenchRows = data.rows;
+    } catch (_) { /* badge gérera */ }
+    return _railBenchRows;
+  }
+  async function updateRailModel(algoOrLabel) {
+    const rm = document.getElementById("rail-model");
+    const rs = document.getElementById("rail-steps");
+    const rsSrc = document.getElementById("rail-steps-source");
+    if (rm) rm.textContent = algoOrLabel || "—";
+    if (!rs) return;
+    // Normalise l'entrée : un run history ressemble à "Q-Learning (run #3)"
+    // → on garde juste l'algo de base pour matcher le cache.
+    const algoKey = (algoOrLabel || "").replace(/\s+\(run\s+#\d+\).*$/i, "").trim();
+    const rows = await ensureRailBench();
+    if (!rows) { rs.textContent = "—"; if (rsSrc) rsSrc.textContent = "cache benchmark indisponible"; return; }
+    const label = RAIL_BENCH_LABEL[algoKey];
+    const row = rows.find((r) => r.label === label);
+    if (row) {
+      rs.textContent = row.mean_steps.toFixed(1);
+      if (rsSrc) rsSrc.textContent = "benchmark · 100 ép. d'éval";
+    } else {
+      rs.textContent = "—";
+      if (rsSrc) rsSrc.textContent = "algo absent du benchmark";
+    }
+  }
+
   /* ============================================================
      2. ENVIRONNEMENT screen — Gymnasium rgb_array frames
      ============================================================ */
@@ -140,6 +180,17 @@
   let envPlaying = false;
   let envTimer = null;
   let envEpisodeOffset = 99999;  // varies between "Nouvel épisode" clicks
+  let envCurrentAlgo = null;     // algo joué dans l'épisode en cours
+
+  // Récupère la moyenne benchmark (pas/épisode sur 100 éval) pour l'algo donné.
+  // Retourne null si le cache n'est pas dispo ou si l'algo n'y figure pas.
+  async function benchMeanFor(algo) {
+    const rows = await ensureRailBench();
+    if (!rows) return null;
+    const label = RAIL_BENCH_LABEL[algo];
+    const row = rows.find((r) => r.label === label);
+    return row ? row.mean_steps : null;
+  }
 
   function showFrame(i) {
     if (!envFrames || !envFrames[i]) return;
@@ -163,6 +214,20 @@
       envStatus.textContent = "résolu en " + s.step + " pas";
       envStatus.classList.remove("live");
       const pb = document.getElementById("env-play"); if (pb) pb.textContent = "↺ Rejouer";
+      // Cohérence avec le benchmark : on annote le résultat avec la moyenne
+      // sur 100 épisodes pour expliquer pourquoi un tirage unique ≠ moyenne.
+      if (envCurrentAlgo) {
+        benchMeanFor(envCurrentAlgo).then((mean) => {
+          const note = document.getElementById("env-mean-note");
+          if (!note) return;
+          if (mean == null) { note.textContent = ""; return; }
+          const diff = s.step - mean;
+          const sign = diff > 0 ? "+" : "";
+          note.innerHTML =
+            `Moyenne benchmark : <b>${mean.toFixed(1)} pas</b> sur 100 épisodes (écart : ${sign}${diff.toFixed(1)}). ` +
+            `Tirage unique : le nombre de pas dépend de la position initiale du taxi et du passager ; la moyenne lisse cet effet.`;
+        });
+      }
     }
   }
   function addLogLine(n, act, r) {
@@ -179,6 +244,8 @@
     roAction.textContent = "—"; roPass.textContent = "en attente"; roPen.textContent = "0";
     if (logEl) logEl.innerHTML = "";
     envStatus.textContent = "prêt"; envStatus.classList.remove("live");
+    const note = document.getElementById("env-mean-note");
+    if (note) note.textContent = "";
     const pb = document.getElementById("env-play"); if (pb) pb.textContent = "▶ Lancer";
     if (envFrames && envFrames.length) showFrame(0);
     else if (envFrame) { envFrame.removeAttribute("src"); if (envEmpty) envEmpty.style.display = "block"; }
@@ -221,11 +288,11 @@
         const data = await res.json();
         envTrace = data.trace;
         envFrames = data.frames || [];
+        envCurrentAlgo = data.run?.algo || null;
         showFrame(0);
         envStatus.textContent = `run #${runId} · ${data.run.algo}`;
         envStatus.classList.remove("live");
-        const rm = document.getElementById("rail-model");
-        if (rm) rm.textContent = `${data.run.algo} (run #${runId})`;
+        updateRailModel(`${data.run.algo} (run #${runId})`);
       } catch (e) {
         T.toast("Échec lecture run : " + e.message, "error");
         envStatus.textContent = "erreur"; envStatus.classList.remove("live");
@@ -238,21 +305,31 @@
     const btn = document.querySelector("#env-policy .seg-btn.active");
     const algo = btn?.dataset.algo || "Q-Learning";
     const params = algo === "Brute Force" ? {} : (window._OPT?.[algo] || {});
+    const payload = {
+      algo, params,
+      train_episodes: trainEpisodesFor(algo),
+      seed: 0,
+      episode_seed_offset: envEpisodeOffset,
+    };
+    envCurrentAlgo = algo;
     envStatus.textContent = `préparation ${algo}…`; envStatus.classList.add("live");
     try {
-      const res = await T.api.runEpisode({
-        algo, params,
-        train_episodes: trainEpisodesFor(algo),
-        seed: 0,
-        episode_seed_offset: envEpisodeOffset,
-      });
+      const res = await T.api.runEpisode(payload);
       envTrace = res.trace;
       envFrames = res.frames || [];
       showFrame(0);
       envStatus.textContent = "prêt"; envStatus.classList.remove("live");
     } catch (e) {
-      T.toast("Échec préparation épisode : " + e.message, "error");
-      envStatus.textContent = "erreur"; envStatus.classList.remove("live");
+      // HTTP 503 = agent pas encore prêt (warmup en cours)
+      const msg = e.message || String(e);
+      if (msg.includes("503") || msg.toLowerCase().includes("pas encore prêt")) {
+        T.toast(`${algo} pas encore prêt. Le warmup serveur termine ; réessayez dans quelques secondes.`, "info");
+        envStatus.textContent = `${algo} en cours de chauffage…`;
+      } else {
+        T.toast("Échec préparation épisode : " + msg, "error");
+        envStatus.textContent = "erreur";
+      }
+      envStatus.classList.remove("live");
       throw e;
     }
     return envTrace;
@@ -305,8 +382,7 @@
       // Switching to a preset clears any selected saved-run.
       if (envRunSelect) envRunSelect.value = "";
       envTrace = null; envFrames = null; resetEpisode();
-      const rm = document.getElementById("rail-model");
-      if (rm) rm.textContent = b.dataset.algo || b.textContent;
+      updateRailModel(b.dataset.algo || b.textContent);
     });
   });
   envRunSelect?.addEventListener("change", () => {
@@ -338,8 +414,7 @@
       if (b.disabled) return;
       seg.querySelectorAll(".seg-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
-      const rm = document.getElementById("rail-model");
-      if (rm && seg.id === "train-algo") rm.textContent = b.dataset.algo || b.textContent;
+      if (seg.id === "train-algo") updateRailModel(b.dataset.algo || b.textContent);
       // Train screen: nudge the episodes slider to a sensible default for the
       // selected algo, sync the chart legend, and surface a hint for DQN.
       if (seg.id === "train-algo") {
@@ -925,6 +1000,48 @@
   }
 
   /* ============================================================
+     6ter. CHART MODAL — bouton "📈 Afficher le graphique"
+     ============================================================ */
+  const chartModal = document.getElementById("chart-modal");
+  const chartModalImg = document.getElementById("chart-modal-img");
+  const chartModalTitle = document.getElementById("chart-modal-title");
+
+  function openChartModal(src, title) {
+    if (!chartModal || !chartModalImg) return;
+    chartModalImg.src = src;
+    chartModalImg.alt = title || "Graphique";
+    if (chartModalTitle) chartModalTitle.textContent = title || "Graphique";
+    chartModal.classList.add("open");
+    chartModal.setAttribute("aria-hidden", "false");
+  }
+  function closeChartModal() {
+    if (!chartModal) return;
+    chartModal.classList.remove("open");
+    chartModal.setAttribute("aria-hidden", "true");
+    // Libère la mémoire de la grande image quand on ferme.
+    if (chartModalImg) chartModalImg.removeAttribute("src");
+  }
+
+  // Délégation : un seul listener pour tous les boutons .hp-btn.
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".hp-btn");
+    if (btn && btn.dataset.chart) {
+      ev.preventDefault();
+      openChartModal(btn.dataset.chart, btn.dataset.chartTitle);
+      return;
+    }
+    if (ev.target.closest("[data-close]")) {
+      closeChartModal();
+    }
+  });
+  // Fermer avec Échap
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && chartModal && chartModal.classList.contains("open")) {
+      closeChartModal();
+    }
+  });
+
+  /* ============================================================
      7. INIT
      ============================================================ */
   async function loadOptimized() {
@@ -948,6 +1065,7 @@
     refreshHistory();
     resetEpisode();
     drawAlgoCharts();
+    updateRailModel("Q-Learning");  // valeur initiale du rail
     go("land");
   });
 })();

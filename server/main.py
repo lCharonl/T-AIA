@@ -22,23 +22,64 @@ from pydantic import BaseModel, Field
 from core import DEFAULT_USER_PARAMS, OPTIMIZED_PARAMS, PRESETS, build_agent
 from server import history
 from server.runner import (
+    _AGENT_CACHE,
+    _AGENT_LOCK,
+    _agent_key,
     evaluate_agent,
     list_algos,
     rollout_episode,
     stream_training,
 )
 
+# Same numbers the front (web/proto.js → trainEpisodesFor()) sends to
+# /api/episode when the user clicks a policy in Environnement. Used by
+# _warmup_env_agents below so the in-memory cache keys match exactly what
+# rollout_episode will look for at the first user click.
+ENV_PRESET_EPISODES = {
+    "Brute Force": 0,
+    "Q-Learning": 2000,
+    "SARSA": 8000,
+    "Deep Q-Learning": 4000,
+}
+
 WEB_DIR = ROOT / "web"
 
 app = FastAPI(title="Taxi Driver — RL Platform")
+
+# ── Verrou global anti-trainings simultanés ──────────────────────────────
+# Un seul WebSocket /ws/train à la fois. Empêche un utilisateur (ou un
+# double-clic) de saturer le CPU avec des trainings parallèles, ce qui
+# bloquerait les /api/episode (cache hit ≈ 1 s) sous attente CPU.
+import threading
+from concurrent.futures import ThreadPoolExecutor
+_TRAIN_LOCK = threading.Lock()
+_TRAIN_BUSY = {"active": False, "label": None}
+
+# Deux pools de threads SÉPARÉS pour que les requêtes légères
+# (/api/episode, lecture cache) ne soient JAMAIS bloquées par un training
+# CPU-bound (training WS ou warmup). Sans ces pools, asyncio utilise un
+# unique pool partagé : un seul training en cours sature toutes les slots
+# et bloque tous les autres POST jusqu'à sa fin.
+_HEAVY_POOL = ThreadPoolExecutor(max_workers=1, thread_name_prefix="heavy")
+_LIGHT_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="light")
 
 # Tracks an in-flight warmup so the front (and concurrent /api/benchmark calls)
 # know to wait instead of triggering a duplicate run.
 _warmup_state: dict[str, Any] = {"running": False, "started_at": None}
 
 
+def _publish_to_env_cache(algo: str, params: dict, episodes: int, agent: Any) -> None:
+    """Insert a trained agent into runner._AGENT_CACHE under the exact key
+    that rollout_episode would compute from /api/episode params — so the
+    first user click on the Environnement screen is instant."""
+    key = _agent_key(algo, params or {}, episodes, 0)
+    with _AGENT_LOCK:
+        _AGENT_CACHE[key] = agent
+
+
 def _seed_cache_now() -> None:
-    """Populate benchmark cache by running every preset. CPU-bound."""
+    """Populate the benchmark cache AND the in-memory environment-agent
+    cache by running every preset once. CPU-bound (~5 min, dominated by DQN)."""
     _warmup_state["running"] = True
     _warmup_state["started_at"] = int(time.time())
     try:
@@ -63,20 +104,84 @@ def _seed_cache_now() -> None:
                 "mean_penalties": ev.get("mean_penalties", 0.0),
                 "train_time_s": train_t,
             })
+            # If this preset's (algo, params, episodes) matches what the
+            # Environnement screen will request, publish the trained agent
+            # to the in-memory cache so the first /api/episode click is
+            # instant instead of triggering another 5-min DQN train.
+            env_ep = ENV_PRESET_EPISODES.get(preset["algo"])
+            if env_ep is not None and env_ep == preset["train_episodes"]:
+                _publish_to_env_cache(preset["algo"], preset["params"], env_ep, agent)
+                print(f"[warmup] env-cache: {preset['algo']} ({env_ep} ép.) prêt")
         history.save_benchmark_cache(rows, 100, 0)
         print("[warmup] benchmark cache populated:", [r["label"] for r in rows])
+
+        # Final safety net: any algo the front exposes in Environnement that
+        # was NOT matched above (typically Brute Force = 0 episodes) needs a
+        # cached entry too — trivial since no training is involved.
+        for algo, env_ep in ENV_PRESET_EPISODES.items():
+            key = _agent_key(algo, OPTIMIZED_PARAMS.get(algo, {}), env_ep, 0)
+            with _AGENT_LOCK:
+                already = key in _AGENT_CACHE
+            if not already:
+                params = {} if algo == "Brute Force" else OPTIMIZED_PARAMS.get(algo, {})
+                agent = build_agent(algo, params=params, seed=0)
+                if env_ep > 0:
+                    agent.train(episodes=env_ep)
+                _publish_to_env_cache(algo, params, env_ep, agent)
+                print(f"[warmup] env-cache (extra): {algo} prêt")
+            # Toujours pré-rendre le 1er épisode (cache d'agent prêt à ce
+            # stade, donc render ≈ 1-3 s selon l'algo)
+            params = {} if algo == "Brute Force" else OPTIMIZED_PARAMS.get(algo, {})
+            t1 = time.perf_counter()
+            rollout_episode(algo, params, seed=0,
+                            train_episodes=env_ep, episode_seed_offset=99_999)
+            print(f"[warmup] env-cache: 1er épisode {algo} caché ({time.perf_counter()-t1:.1f}s)")
+    finally:
+        _warmup_state["running"] = False
+
+
+def _warmup_env_only() -> None:
+    """Pre-train the 4 algos exposed in the Environnement screen AND
+    pre-render their first episode. After this, the first user click on
+    any algo button is instant (~50 ms = serialize cached result)."""
+    _warmup_state["running"] = True
+    _warmup_state["started_at"] = int(time.time())
+    try:
+        for algo, env_ep in ENV_PRESET_EPISODES.items():
+            params = {} if algo == "Brute Force" else OPTIMIZED_PARAMS.get(algo, {})
+            agent = build_agent(algo, params=params, seed=0)
+            t0 = time.perf_counter()
+            if env_ep > 0:
+                agent.train(episodes=env_ep)
+            _publish_to_env_cache(algo, params, env_ep, agent)
+            train_dur = time.perf_counter() - t0
+            # Pré-render le premier épisode (offset=99999, le défaut du front)
+            # pour que le tout premier clic soit instantané. Ce render utilise
+            # le cache d'agent qu'on vient juste de remplir.
+            t1 = time.perf_counter()
+            rollout_episode(algo, params, seed=0,
+                            train_episodes=env_ep, episode_seed_offset=99_999)
+            render_dur = time.perf_counter() - t1
+            print(f"[warmup] env-cache: {algo} prêt "
+                  f"(train {env_ep} ép. en {train_dur:.1f}s, "
+                  f"render 1er épisode en {render_dur:.1f}s)")
     finally:
         _warmup_state["running"] = False
 
 
 @app.on_event("startup")
-async def _warmup_benchmark() -> None:
-    """At boot, if the benchmark cache is empty, populate it in the
-    background so the first visit to /benchmark is instant. Takes ~5 min."""
-    if history.get_benchmark_cache() is not None:
-        return
+async def _warmup_on_boot() -> None:
+    """Two warmup paths at server boot:
+       1. If the SQLite benchmark cache is empty → run the full bench
+          (also fills the in-memory agent cache as a side-effect).
+       2. If the benchmark cache exists → just pre-train the Environnement
+          agents so the first user click is instant.
+    Both happen in a background executor so HTTP requests are not blocked."""
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, _seed_cache_now)
+    if history.get_benchmark_cache() is None:
+        loop.run_in_executor(_HEAVY_POOL, _seed_cache_now)
+    else:
+        loop.run_in_executor(_HEAVY_POOL, _warmup_env_only)
 
 
 # ── Static front ─────────────────────────────────────────────────────────
@@ -151,20 +256,55 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/_debug/cache")
+async def debug_cache() -> dict[str, Any]:
+    """Dump des clés actuellement présentes dans _AGENT_CACHE et
+    _EPISODE_CACHE. Permet de comprendre pourquoi un /api/episode reçoit
+    503 alors que le warmup avait l'air OK : sans doute params différents."""
+    from server.runner import _AGENT_CACHE, _EPISODE_CACHE, _AGENT_LOCK, _EPISODE_LOCK
+    with _AGENT_LOCK:
+        agent_keys = list(_AGENT_CACHE.keys())
+    with _EPISODE_LOCK:
+        episode_keys = list(_EPISODE_CACHE.keys())
+    return {
+        "agent_cache_size": len(agent_keys),
+        "agent_keys": agent_keys,
+        "episode_cache_size": len(episode_keys),
+        "episode_keys": episode_keys,
+    }
+
+
 # ── Environnement screen: play one greedy episode ────────────────────────
 @app.post("/api/episode")
 async def api_episode(req: EpisodeRequest) -> dict[str, Any]:
-    # Heavy on the first call (training), cached afterwards by runner.
+    # Run on the LIGHT pool, never blocked by an ongoing training (heavy pool).
+    # allow_train=False : si l'agent n'est pas en cache, on REFUSE de
+    # l'entraîner à la volée (ça créerait des trainings parallèles qui
+    # saturent le CPU). Le warmup s'en charge au boot.
+    from server.runner import AgentNotReady, _agent_key, _AGENT_CACHE, _AGENT_LOCK
+    train_ep = 0 if req.algo == "Brute Force" else req.train_episodes
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: rollout_episode(
-            req.algo, req.params,
-            seed=req.seed,
-            train_episodes=0 if req.algo == "Brute Force" else req.train_episodes,
-            episode_seed_offset=req.episode_seed_offset,
-        ),
-    )
+    try:
+        result = await loop.run_in_executor(
+            _LIGHT_POOL,
+            lambda: rollout_episode(
+                req.algo, req.params,
+                seed=req.seed,
+                train_episodes=train_ep,
+                episode_seed_offset=req.episode_seed_offset,
+                allow_train=False,
+            ),
+        )
+    except AgentNotReady as e:
+        # Log de diagnostic : pourquoi le cache n'a pas matché.
+        wanted = _agent_key(req.algo, req.params or {}, train_ep, req.seed)
+        with _AGENT_LOCK:
+            present = list(_AGENT_CACHE.keys())
+        print(f"[503] algo={req.algo} train_ep={train_ep} seed={req.seed}")
+        print(f"      params reçus = {req.params}")
+        print(f"      clé cherchée = {wanted}")
+        print(f"      clés en cache = {present}")
+        raise HTTPException(status_code=503, detail=str(e))
     return result
 
 
@@ -175,14 +315,17 @@ async def api_run_episode(run_id: int, episode_seed_offset: int = 99_999) -> dic
     run = next((r for r in runs if r["id"] == run_id), None)
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
+    # Pour un run sauvegardé on AUTORISE le training (l'utilisateur le
+    # demande explicitement par sélection dans l'historique).
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None,
+        _LIGHT_POOL,
         lambda: rollout_episode(
             run["algo"], run["params"],
             seed=0,
             train_episodes=run["episodes"],
             episode_seed_offset=episode_seed_offset,
+            allow_train=True,
         ),
     )
     result["run"] = {
@@ -249,12 +392,13 @@ async def api_benchmark(req: BenchmarkRequest) -> dict[str, Any]:
             })
         return rows
 
-    rows = await loop.run_in_executor(None, _run)
+    rows = await loop.run_in_executor(_HEAVY_POOL, _run)
     # Persist only when we ran the full default preset set — partial snapshots
     # would pollute the cache and trigger stale hits later.
     if req.presets is None or set(req.presets) == set(PRESETS.keys()):
         await loop.run_in_executor(
-            None, lambda: history.save_benchmark_cache(rows, req.eval_episodes, req.seed)
+            _LIGHT_POOL,
+            lambda: history.save_benchmark_cache(rows, req.eval_episodes, req.seed),
         )
     return {
         "rows": rows,
@@ -318,8 +462,8 @@ async def api_shaping_compare(req: ShapingRequest) -> dict[str, Any]:
             "train_time_s": elapsed,
         }
 
-    base = await loop.run_in_executor(None, _train_once, False)
-    shaped = await loop.run_in_executor(None, _train_once, True)
+    base = await loop.run_in_executor(_HEAVY_POOL, _train_once, False)
+    shaped = await loop.run_in_executor(_HEAVY_POOL, _train_once, True)
     return {"base": base, "shaped": shaped, "algo": req.algo,
             "shaping_lambda": req.shaping_lambda, "episodes": req.episodes}
 
@@ -356,9 +500,25 @@ async def ws_train(ws: WebSocket) -> None:
         await ws.close()
         return
 
-    # We need to (a) stream training events to the WS, (b) afterwards
-    # evaluate the agent and (c) persist the run. The generator runs in
-    # a thread (it's CPU-bound), the main asyncio loop drains it via a queue.
+    # ── verrou anti-trainings concurrents ────────────────────────────────
+    # Si un entraînement tourne déjà (déclenché par un autre onglet, un
+    # double-clic, le warmup, ou un benchmark), on REFUSE celui-ci tout de
+    # suite. Sans ça, plusieurs trainings parallèles saturent les 3 cœurs
+    # de la machine et bloquent les /api/episode (qui doivent rester
+    # réactifs pour l'écran Environnement).
+    acquired = _TRAIN_LOCK.acquire(blocking=False)
+    if not acquired:
+        await ws.send_json({
+            "type": "error",
+            "message": (f"Un entraînement est déjà en cours "
+                        f"({_TRAIN_BUSY.get('label') or '?'}). "
+                        f"Attendez qu'il se termine."),
+        })
+        await ws.close()
+        return
+    _TRAIN_BUSY["active"] = True
+    _TRAIN_BUSY["label"] = f"{req.algo} · {req.episodes} ép."
+
     loop = asyncio.get_event_loop()
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     final: dict[str, Any] = {}
@@ -385,7 +545,7 @@ async def ws_train(ws: WebSocket) -> None:
         finally:
             asyncio.run_coroutine_threadsafe(queue.put({"type": "_eof"}), loop)
 
-    producer = loop.run_in_executor(None, _producer)
+    producer = loop.run_in_executor(_HEAVY_POOL, _producer)
     try:
         while True:
             evt = await queue.get()
@@ -397,9 +557,9 @@ async def ws_train(ws: WebSocket) -> None:
         if "agent" in final:
             agent = final["agent"]
             ev = await loop.run_in_executor(
-                None, lambda: agent.evaluate(episodes=req.eval_episodes)
+                _HEAVY_POOL, lambda: agent.evaluate(episodes=req.eval_episodes)
             )
-            run_id = await loop.run_in_executor(None, lambda: history.insert_run(
+            run_id = await loop.run_in_executor(_LIGHT_POOL, lambda: history.insert_run(
                 algo=req.algo,
                 params=req.params,
                 episodes=req.episodes,
@@ -425,6 +585,12 @@ async def ws_train(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         return
     finally:
+        _TRAIN_BUSY["active"] = False
+        _TRAIN_BUSY["label"] = None
+        try:
+            _TRAIN_LOCK.release()
+        except RuntimeError:
+            pass
         await ws.close()
 
 
